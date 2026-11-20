@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8f5ec">
+  <title>周末小镇 · 小镇贴纸簿</title>
+  <link rel="icon" href="media/stickers/bakery.webp" type="image/webp">
+  <link rel="stylesheet" href="ui/game.css">
+  <link rel="stylesheet" href="ui/custom.css">
+  <script defer src="ui/gift.js"></script>
+  <script defer src="ui/parcel.js"></script>
+  <script defer src="ui/custom.js"></script>
+  <script defer src="ui/encounters.js"></script>
+  <script defer src="ui/garden.js"></script>
+  <script defer src="ui/night-rules.js"></script>
+  <script defer src="ui/night-market.js"></script>
+  <script defer src="ui/game.js"></script>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" class="symbols" aria-hidden="true">
+    <symbol id="i-lantern" viewBox="0 0 24 24"><path d="M9 4h6m-3 0V2M7 6h10l2 4v5l-3 3H8l-3-3v-5l2-4Zm2 0-1 6 1 6m6-12 1 6-1 6m-6 2h6m-3 0v3"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h12a2 2 0 0 1 2 2v10l-4 4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M7 4v16m8 0v-4h4M10.5 8h5m-5 3h3"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.2 9a3 3 0 0 1 5.7 1c0 2-2.9 2.1-2.9 4m0 2.4h.02"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="m9 6-5 5 5 5m-5-5h10a5 5 0 0 1 5 5v2"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 .8 6M4 5v5h5"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14m-7-7v14"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-9 9M6 8H4v12h12v-2"/></symbol>
+    <symbol id="i-stack" viewBox="0 0 24 24"><path d="m3 10 9-5 9 5-9 5-9-5Zm1 4 8 4 8-4m-16 3 8 4 8-4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.6 7-12a7 7 0 0 0-14 0c0 5.4 7 12 7 12Z"/><circle cx="12" cy="9" r="2.1"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="m11 5-5 4H3v6h3l5 4Zm4 4a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="m11 5-5 4H3v6h3l5 4Zm5 4 5 6m0-6-5 6"/></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24"><path d="M3 9h18v4H3zm2 4v8h14v-8M12 9v12"/><path d="M12 9c-5 0-7-1-7-3a2.5 2.5 0 0 1 4-2c1.3 1 2.3 2.9 3 5Zm0 0c5 0 7-1 7-3a2.5 2.5 0 0 0-4-2c-1.3 1-2.3 2.9-3 5Z"/></symbol>
+    <symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M4 4h5a2.5 2.5 0 1 0 5 0h6v6a2.5 2.5 0 1 1 0 5v5h-6a2.5 2.5 0 1 0-5 0H4v-5a2.5 2.5 0 1 0 0-5Z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5m4-5v5"/></symbol>
+    <symbol id="i-postcard" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M14 8v8m2-3h3m-3 3h2M5 15l2.5-3 2 2 1.5-1.5"/></symbol>
+    <symbol id="i-magic" viewBox="0 0 24 24"><path d="m4 20 11-11 2 2L6 22zm10-16 1-3 1 3 3 1-3 1-1 3-1-3-3-1zm5 10 1-2 1 2 2 1-2 1-1 2-1-2-2-1Z"/></symbol>
+  </svg>
+  <header class="mast">
+    <div class="mast-inner">
+      <div class="brand"><span class="brand-mark"><svg aria-hidden="true"><use href="#i-book"/></svg></span><span>小镇贴纸簿</span></div>
+      <nav class="mode-switch" aria-label="游戏模式">
+        <button id="market-enter" aria-pressed="false" disabled><svg aria-hidden="true"><use href="#i-lantern"/></svg>夜市</button>
+        <button id="mode-edit" aria-pressed="false" disabled><svg aria-hidden="true"><use href="#i-stack"/></svg>造景</button>
+        <button id="mode-puzzle" aria-pressed="false" disabled><svg aria-hidden="true"><use href="#i-puzzle"/></svg>拼图</button>
+      </nav>
+      <div class="mast-actions">
+        <button id="help-button" class="plain" aria-label="玩法"><svg aria-hidden="true"><use href="#i-help"/></svg><span>玩法</span></button>
+        <button id="share-button" class="share" aria-label="分享这盒"><svg aria-hidden="true"><use href="#i-share"/></svg><span>分享这盒</span></button>
+      </div>
+    </div>
+  </header>
+  <main class="desk">
+    <div class="opening">
+      <div class="scene-heading"><h1 id="level-title">周末小镇</h1><span id="box-number">第 1 盒 / 共 2 盒</span></div>
+      <p id="instruction">从贴纸盘选一张，贴到场景中对应的位置。</p>
+    </div>
+    <section class="workspace" aria-label="贴纸游戏">
+      <div class="play-column">
+        <div class="board" id="board">
+          <canvas id="canvas" tabindex="0" aria-label="拼图画布，选好贴纸后点击对应位置。键盘使用方向键移动，回车键放置。" aria-describedby="instruction">请使用支持 WebGL 2 的浏览器来玩。</canvas>
+          <div id="keyboard-marker" hidden aria-hidden="true"></div>
+          <button class="reference" id="reference-button" aria-label="查看成品参考图">
+            <img id="reference-thumb" src="media/preview-1.webp" alt="">
+            <span>成品参考<svg aria-hidden="true"><use href="#i-expand"/></svg></span>
+          </button>
+          <button id="cat-invite" class="cat-invite" disabled><img id="cat-art" src="media/thumbs/black-cat.webp" alt=""><span>带黑猫逛街</span><svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
+          <button id="journal-button" class="field-button" hidden><svg aria-hidden="true"><use href="#i-book"/></svg><span>街角手记</span><small id="journal-count"></small></button>
+          <div id="scene-note" class="scene-note" role="status" aria-live="polite" hidden></div>
+          <div id="load-layer" class="load-layer" role="status"><div class="load-card"><span class="load-dot"></span><span id="load-message">正在打开贴纸盒…</span><button id="retry" class="action" hidden>重新加载</button></div></div>
+          <div id="toast" class="toast" role="status" hidden></div>
+        </div>
+        <div id="market-ledger" hidden>
+          <div class="market-tally"><svg aria-hidden="true"><use href="#i-lantern"/></svg><span>本轮成交</span><strong id="market-sales">0</strong><span>单</span></div>
+          <p id="market-status" role="status" aria-live="polite"></p>
+          <button id="market-reopen" type="button">再逛一轮</button>
+        </div>
+        <div class="board-tools">
+          <div class="edit-actions">
+            <button class="tool" id="undo" disabled><svg aria-hidden="true"><use href="#i-undo"/></svg><span>撤销</span></button>
+            <button class="tool" id="reset" disabled><svg aria-hidden="true"><use href="#i-reset"/></svg><span>重拼</span></button>
+            <button class="tool" id="remove" hidden disabled><svg aria-hidden="true"><use href="#i-trash"/></svg><span>移除</span></button>
+          </div>
+          <div class="zoom" aria-label="音效与画布缩放"><button class="icon-button sound" id="sound" aria-label="关闭音效" title="关闭音效" disabled><svg aria-hidden="true"><use href="#i-volume"/></svg></button><button class="icon-button" id="zoom-out" aria-label="缩小" disabled><svg aria-hidden="true"><use href="#i-minus"/></svg></button><output id="zoom-value">100%</output><button class="icon-button" id="zoom-in" aria-label="放大" disabled><svg aria-hidden="true"><use href="#i-plus"/></svg></button></div>
+        </div>
+      </div>
+      <aside class="tray" aria-label="贴纸盘">
+        <div class="tray-heading"><div class="tray-title"><svg aria-hidden="true"><use href="#i-stack"/></svg><h2>贴纸盘</h2></div><span class="counter"><strong id="placed-count">0</strong><span class="count-total"> / <span id="total-count">—</span></span> <span id="count-label">已贴</span></span></div>
+        <div class="track" id="progress" role="progressbar" aria-label="已贴进度" aria-valuemin="0" aria-valuenow="0"><i></i></div>
+        <div class="tray-nav"><span id="tray-label">待贴的贴纸</span><div><button class="page-button prev" id="previous" aria-label="上一页贴纸" disabled><svg aria-hidden="true"><use href="#i-arrow"/></svg></button><span class="page-count" id="page-count">—</span><button class="page-button" id="following" aria-label="下一页贴纸" disabled><svg aria-hidden="true"><use href="#i-arrow"/></svg></button></div></div>
+        <div id="stickers" class="stickers" aria-label="可以选择的贴纸"></div>
+        <div class="finished" id="finished" hidden><div class="finish-seal"><svg aria-hidden="true"><use href="#i-check"/></svg></div><h3 id="finish-title">这一盒贴好了</h3><p id="finish-copy">把刚拼好的小镇收成一张明信片吧。</p><button id="finish-save" class="action"><svg aria-hidden="true"><use href="#i-postcard"/></svg>保存明信片</button><button id="next-level" class="plain">打开下一盒</button><button id="finish-replay" class="plain">再拼一次</button></div>
+        <div class="studio-actions" id="studio-actions" hidden>
+          <div class="paper-choice"><label for="base">草稿</label><select id="base" title="两张草稿各自保存"><option value="weekend-town-v1">周末小镇</option><option value="afternoon-v1">广场午后</option></select></div>
+          <div class="studio-buttons"><button id="postcard" class="secondary" disabled><svg aria-hidden="true"><use href="#i-postcard"/></svg>存明信片</button><button id="wrap" class="action" disabled><svg aria-hidden="true"><use href="#i-gift"/></svg>封装成礼物</button></div>
+        </div>
+        <button id="custom-button" class="custom-button"><svg aria-hidden="true"><use href="#i-magic"/></svg><span>定制贴纸</span><svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        <div id="save-status" class="save-status" hidden><svg aria-hidden="true"><use href="#i-check"/></svg><span></span></div>
+      </aside>
+    </section>
+  </main>
+  <dialog id="dialog" aria-labelledby="dialog-title">
+    <div class="dialog-top"><h2 id="dialog-title"></h2><button class="icon-button" id="close-dialog" aria-label="关闭"><svg aria-hidden="true"><use href="#i-close"/></svg></button></div>
+    <div id="dialog-body"></div>
+    <div id="dialog-actions"></div>
+  </dialog>
+  <noscript>请在浏览器中启用 JavaScript 来打开贴纸盒。</noscript>
+</body>
+</html>

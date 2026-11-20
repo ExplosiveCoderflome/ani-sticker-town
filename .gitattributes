@@ -1,0 +1,12 @@
+* text=auto
+*.cmd text eol=crlf
+# Keep the raw Web loader byte-for-byte identical to its compressed copy.
+/play/town.js -text
+*.wasm binary
+*.pck binary
+*.gz binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.webp binary
+*.gif binary

@@ -1,0 +1,553 @@
+{
+  "schema_version": 1,
+  "level_id": "weekend-town-v1",
+  "title": "周末小镇",
+  "source_manifest": "../../weekend-town/stickers.json",
+  "asset_id_rule": "Filename stem of a sticker in source_manifest. Resolve sticker.file relative to the manifest directory.",
+  "canvas": {
+    "size_px": [
+      864,
+      900
+    ],
+    "coordinates": "Top-left origin. Positive x right, positive y down. Units are logical pixels.",
+    "fit": "contain",
+    "outer_color": "#F4F0DF"
+  },
+  "drawing": {
+    "object_anchor": "Bottom center of visible_bounds_ltrb_px cropped from source texture; crop bounds are [left, top, right_exclusive, bottom_exclusive].",
+    "object_size": "visible_size_px scales the cropped rectangle; anchor_xy is the bottom center of this scaled rectangle.",
+    "depth": "Render ground in listed order, then slots in ascending z_index. Render each slot contact shadow immediately before its sprite.",
+    "contact_shadow": "Soft ellipse around anchor_xy + offset_xy; radius_xy and blur_px in logical pixels; color #54412C.",
+    "slot_opacity": "Optional opacity, defaults to 1. Apply to the sprite alpha only, after cropping and scaling."
+  },
+  "ground": {
+    "interactive": false,
+    "render_order": [
+      "foundation",
+      "surface",
+      "paving_grid",
+      "fountain_apron",
+      "planters"
+    ],
+    "foundation": {
+      "polygon_xy": [
+        [
+          432,
+          302
+        ],
+        [
+          838,
+          504
+        ],
+        [
+          838,
+          622
+        ],
+        [
+          441,
+          843
+        ],
+        [
+          423,
+          843
+        ],
+        [
+          26,
+          641
+        ],
+        [
+          26,
+          505
+        ]
+      ],
+      "thickness_y_px": 7,
+      "fill": "#C2B59B",
+      "outline": "#BCAE93",
+      "outline_width_px": 1
+    },
+    "surface": {
+      "polygon_xy": [
+        [
+          432,
+          302
+        ],
+        [
+          838,
+          504
+        ],
+        [
+          838,
+          622
+        ],
+        [
+          441,
+          843
+        ],
+        [
+          423,
+          843
+        ],
+        [
+          26,
+          641
+        ],
+        [
+          26,
+          505
+        ]
+      ],
+      "fill": "#E9DECA",
+      "outline": "#AE9E80",
+      "outline_width_px": 1
+    },
+    "paving_grid": {
+      "asset_id": "paving",
+      "cell_00_center_xy": [
+        432,
+        315
+      ],
+      "step_u_xy": [
+        70,
+        36.5
+      ],
+      "step_v_xy": [
+        -70,
+        36.5
+      ],
+      "texture_size_px": [
+        143,
+        75
+      ],
+      "opacity": 0.31,
+      "range_u_inclusive": [
+        -4,
+        16
+      ],
+      "range_v_inclusive": [
+        -4,
+        16
+      ],
+      "clip_to": "surface",
+      "exclude_cells_uv": [
+        [
+          6,
+          6
+        ]
+      ],
+      "target_slot_id": "entry-paving",
+      "definition": "Cell center = cell_00_center_xy + u * step_u_xy + v * step_v_xy. Sprite is centered on cell. The omitted center is restored by the interactive paving slot using the same opacity."
+    },
+    "planters": [
+      {
+        "id": "tree-bed",
+        "polygon_xy": [
+          [
+            63,
+            611
+          ],
+          [
+            111,
+            586
+          ],
+          [
+            165,
+            613
+          ],
+          [
+            117,
+            639
+          ]
+        ],
+        "fill": "#C2B99C",
+        "outline": "#AB9D82",
+        "outline_width_px": 1,
+        "inset_fraction": 0.92,
+        "inset_fill": "#BFC7A3"
+      }
+    ],
+    "fountain_apron": {
+      "center_xy": [
+        482,
+        617
+      ],
+      "outer_radius_xy": [
+        86,
+        43
+      ],
+      "stroke_width_px": 2.5,
+      "stroke": "#C6AE93",
+      "inner_radius_xy": [
+        82,
+        40
+      ],
+      "inner_stroke_width_px": 1,
+      "inner_stroke": "#D4BFA0"
+    }
+  },
+  "puzzle": {
+    "mode": "match_each_sticker_to_its_own_slot",
+    "completion_count": 14,
+    "snap_distance": "Euclidean distance between candidate bottom-center anchor and target anchor in logical canvas pixels. Accept equal or smaller than slot snap_radius_px.",
+    "touch_ui": {
+      "unit": "density-independent viewport pixels",
+      "minimum_handle_diameter": 44,
+      "minimum_snap_radius": 16,
+      "scale_rule": "For touch, use max(slot.snap_radius_px, minimum_snap_radius / viewport_units_per_canvas_unit). Hit regions may grow without changing visible artwork. Include only the matching slot when checking snap."
+    }
+  },
+  "slots": [
+    {
+      "slot_id": "entry-paving",
+      "asset_id": "paving",
+      "anchor_xy": [
+        432,
+        790.5
+      ],
+      "visible_size_px": [
+        143,
+        75
+      ],
+      "z_index": 0,
+      "snap_radius_px": 30,
+      "opacity": 0.31
+    },
+    {
+      "slot_id": "north-bookshop",
+      "asset_id": "bookshop",
+      "anchor_xy": [
+        563,
+        510
+      ],
+      "visible_size_px": [
+        319.61,
+        389
+      ],
+      "z_index": 10,
+      "snap_radius_px": 30,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          143,
+          22
+        ],
+        "blur_px": 5,
+        "opacity": 0.18
+      }
+    },
+    {
+      "slot_id": "west-bakery",
+      "asset_id": "bakery",
+      "anchor_xy": [
+        281,
+        524
+      ],
+      "visible_size_px": [
+        311.19,
+        383
+      ],
+      "z_index": 20,
+      "snap_radius_px": 30,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          140,
+          22
+        ],
+        "blur_px": 5,
+        "opacity": 0.18
+      }
+    },
+    {
+      "slot_id": "bakery-table",
+      "asset_id": "cafe-table",
+      "anchor_xy": [
+        369,
+        589
+      ],
+      "visible_size_px": [
+        37.19,
+        51
+      ],
+      "z_index": 30,
+      "snap_radius_px": 21,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          16,
+          4
+        ],
+        "blur_px": 2,
+        "opacity": 0.11
+      }
+    },
+    {
+      "slot_id": "bakery-chair",
+      "asset_id": "cafe-chair",
+      "anchor_xy": [
+        400,
+        599
+      ],
+      "visible_size_px": [
+        26.5,
+        48
+      ],
+      "z_index": 40,
+      "snap_radius_px": 21,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          12,
+          4
+        ],
+        "blur_px": 2,
+        "opacity": 0.12
+      }
+    },
+    {
+      "slot_id": "reading-bench",
+      "asset_id": "bench",
+      "anchor_xy": [
+        673,
+        602
+      ],
+      "visible_size_px": [
+        69.77,
+        62
+      ],
+      "z_index": 50,
+      "snap_radius_px": 30,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          29,
+          5
+        ],
+        "blur_px": 2,
+        "opacity": 0.14
+      }
+    },
+    {
+      "slot_id": "west-tree",
+      "asset_id": "tree",
+      "anchor_xy": [
+        116,
+        616
+      ],
+      "visible_size_px": [
+        192.56,
+        221
+      ],
+      "z_index": 60,
+      "snap_radius_px": 30,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          25,
+          8
+        ],
+        "blur_px": 4,
+        "opacity": 0.16
+      }
+    },
+    {
+      "slot_id": "east-lamp",
+      "asset_id": "lamp",
+      "anchor_xy": [
+        743,
+        618
+      ],
+      "visible_size_px": [
+        33.12,
+        162
+      ],
+      "z_index": 70,
+      "snap_radius_px": 30,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          9,
+          4
+        ],
+        "blur_px": 3,
+        "opacity": 0.16
+      }
+    },
+    {
+      "slot_id": "square-fountain",
+      "asset_id": "fountain",
+      "anchor_xy": [
+        482,
+        650
+      ],
+      "visible_size_px": [
+        144.68,
+        127
+      ],
+      "z_index": 80,
+      "snap_radius_px": 30,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          61,
+          12
+        ],
+        "blur_px": 4,
+        "opacity": 0.19
+      }
+    },
+    {
+      "slot_id": "market-cart",
+      "asset_id": "flower-cart",
+      "anchor_xy": [
+        267,
+        667
+      ],
+      "visible_size_px": [
+        163.07,
+        158
+      ],
+      "z_index": 90,
+      "snap_radius_px": 30,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          56,
+          11
+        ],
+        "blur_px": 3,
+        "opacity": 0.16
+      }
+    },
+    {
+      "slot_id": "cart-vendor",
+      "asset_id": "florist",
+      "anchor_xy": [
+        180,
+        686
+      ],
+      "visible_size_px": [
+        38.13,
+        85
+      ],
+      "z_index": 100,
+      "snap_radius_px": 30,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          11,
+          3
+        ],
+        "blur_px": 2,
+        "opacity": 0.15
+      }
+    },
+    {
+      "slot_id": "fountain-musician",
+      "asset_id": "musician",
+      "anchor_xy": [
+        568,
+        697
+      ],
+      "visible_size_px": [
+        42.05,
+        88
+      ],
+      "z_index": 110,
+      "snap_radius_px": 30,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          13,
+          4
+        ],
+        "blur_px": 2,
+        "opacity": 0.14
+      }
+    },
+    {
+      "slot_id": "square-child",
+      "asset_id": "child",
+      "anchor_xy": [
+        451,
+        728
+      ],
+      "visible_size_px": [
+        33.46,
+        70
+      ],
+      "z_index": 120,
+      "snap_radius_px": 21,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          11,
+          4
+        ],
+        "blur_px": 2,
+        "opacity": 0.14
+      }
+    },
+    {
+      "slot_id": "square-corgi",
+      "asset_id": "dog",
+      "anchor_xy": [
+        508,
+        746
+      ],
+      "visible_size_px": [
+        34.92,
+        42
+      ],
+      "z_index": 130,
+      "snap_radius_px": 21,
+      "contact_shadow": {
+        "offset_xy": [
+          2,
+          -1
+        ],
+        "radius_xy": [
+          12,
+          4
+        ],
+        "blur_px": 2,
+        "opacity": 0.16
+      }
+    }
+  ]
+}

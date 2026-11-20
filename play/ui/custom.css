@@ -1,0 +1,31 @@
+#sticker-studio{width:min(440px,calc(100vw - 24px));padding:22px;overscroll-behavior:contain}
+#sticker-studio .dialog-top{margin-bottom:15px}
+#sticker-studio .atelier-tabs{display:flex;padding:3px;gap:3px;background:#efeddf;border-radius:9px;margin-bottom:15px}
+.atelier-tabs button{flex:1;min-height:36px;padding:3px 5px;border:none;background:transparent;border-radius:7px;color:var(--muted);font:inherit;font-size:14px}
+.atelier-tabs button[aria-pressed=true]{background:#fffdf4;color:var(--green);box-shadow:0 1px 3px #353e2e26;font-weight:650}
+.atelier-paper{display:grid;place-items:center;min-height:148px;margin-bottom:14px;padding:13px;border-radius:9px;border:1px solid #ded9c7;background-color:#efedde;background-image:radial-gradient(#bfc1a9 0.8px,transparent 1px);background-size:12px 12px}
+#street-preview{width:90%;max-width:330px;height:auto;transform:rotate(-2deg);filter:drop-shadow(0 3px 2px #6b583520)}
+#sticker-studio label,#sticker-studio legend{display:block;color:var(--ink);font-size:14px;font-weight:600}
+#sticker-studio input,#sticker-studio textarea{width:100%;margin:6px 0 0;padding:9px 11px;border:1px solid #bbbfae;border-radius:6px;background:#fffef9;color:var(--ink);font:inherit;font-size:16px}
+#sticker-studio textarea{resize:vertical}
+#street-colors{display:flex;gap:7px;margin:12px 0 16px;padding:0;border:none}
+#street-colors legend{padding:0;margin-bottom:5px}
+#street-colors button{display:flex;align-items:center;gap:6px;padding:7px 9px;background:#fffdf5;border:1px solid var(--line);border-radius:20px;color:var(--ink);font-size:13px}
+#street-colors button::before{content:"";width:11px;height:11px;background:var(--swatch);border-radius:50%}
+#street-colors button[aria-pressed=true]{border-color:#426648;box-shadow:inset 0 0 0 1px #426648}
+.atelier-main{width:100%;margin-top:4px}
+#sticker-studio p{font-size:13px;line-height:1.65;color:var(--muted);margin:9px 0}
+#sticker-studio #studio-status{color:#785037;margin:8px 0 0}
+#studio-status:empty{display:none}
+.atelier-kind{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px}
+.atelier-kind select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:6px;background:#fffef9;color:var(--ink);padding:5px 8px}
+.atelier-samples{border-top:1px solid var(--line);margin-top:18px;padding-top:12px}
+.atelier-samples h3{font-family:var(--serif);font-size:16px;margin:0 0 7px}
+#sample-pieces{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+#sample-pieces button{background:#f4eedf;border:1px solid #ded4b9;border-radius:7px;color:var(--ink);padding:6px;font-size:13px}
+#sample-pieces img{display:block;width:100%;height:46px;object-fit:contain;margin-bottom:3px}
+#atelier-collection{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:45vh;overflow:auto}
+#atelier-collection button{min-width:0;background:#f5f2e6;border:1px solid var(--line);border-radius:7px;padding:6px;color:var(--ink)}
+#atelier-collection img{width:100%;height:54px;object-fit:contain;display:block}
+#atelier-collection span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:inherit;font-size:12px}
+@media(max-width:480px){#sticker-studio{padding:16px}.atelier-paper{min-height:112px}}

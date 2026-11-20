@@ -1,0 +1,53 @@
+{
+  "theme": "一个热闹的夜市",
+  "stickers": [
+    {
+      "id": "gen-9b66550675a5eb1ba0875fec258e9300",
+      "name": "灯笼馄饨摊",
+      "role": "stall",
+      "size": [
+        212.0,
+        205.33
+      ],
+      "width": 540,
+      "height": 523,
+      "file": "stall.png"
+    },
+    {
+      "id": "gen-07edf3cd89fcfc339ea6cb343b2e8e86",
+      "name": "青边方桌",
+      "role": "table",
+      "size": [
+        67.79,
+        76.0
+      ],
+      "width": 223,
+      "height": 250,
+      "file": "table.png"
+    },
+    {
+      "id": "gen-ca2184840081866f1f5a0bc27344ec26",
+      "name": "朱漆小凳",
+      "role": "chair",
+      "size": [
+        47.56,
+        55.0
+      ],
+      "width": 147,
+      "height": 170,
+      "file": "chair.png"
+    },
+    {
+      "id": "gen-7ddcad4bdba1555241cf12d072f7f463",
+      "name": "围巾食客",
+      "role": "customer",
+      "size": [
+        39.51,
+        88.0
+      ],
+      "width": 110,
+      "height": 245,
+      "file": "customer.png"
+    }
+  ]
+}

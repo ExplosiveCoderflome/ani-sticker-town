@@ -1,0 +1,18 @@
+# Local editor and Python caches
+.godot/
+__pycache__/
+*.py[cod]
+.venv/
+
+# Local credentials and player data
+.env
+.env.*
+!.env.example
+*.sqlite3
+*.sqlite3-*
+*.db
+
+# Superseded builds and the duplicate source-art archive
+/releases/sticker-town-v0.[123].zip
+/weekend-town.zip
+/releases/.package-*/

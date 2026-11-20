@@ -1,0 +1,442 @@
+{
+  "canvas": [
+    864,
+    900
+  ],
+  "levels": [
+    {
+      "id": "weekend-town-v1",
+      "title": "周末小镇",
+      "slots": [
+        {
+          "id": "entry-paving",
+          "asset": "paving",
+          "name": "石砖地块",
+          "anchor": [
+            432,
+            790.5
+          ],
+          "size": [
+            143,
+            75
+          ],
+          "z": 0,
+          "radius": 30,
+          "opacity": 0.31
+        },
+        {
+          "id": "north-bookshop",
+          "asset": "bookshop",
+          "name": "独立书店",
+          "anchor": [
+            563,
+            510
+          ],
+          "size": [
+            319.61,
+            389
+          ],
+          "z": 10,
+          "radius": 30
+        },
+        {
+          "id": "west-bakery",
+          "asset": "bakery",
+          "name": "街角面包房",
+          "anchor": [
+            281,
+            524
+          ],
+          "size": [
+            311.19,
+            383
+          ],
+          "z": 20,
+          "radius": 30
+        },
+        {
+          "id": "bakery-table",
+          "asset": "cafe-table",
+          "name": "咖啡圆桌",
+          "anchor": [
+            369,
+            589
+          ],
+          "size": [
+            37.19,
+            51
+          ],
+          "z": 30,
+          "radius": 21
+        },
+        {
+          "id": "bakery-chair",
+          "asset": "cafe-chair",
+          "name": "藤椅",
+          "anchor": [
+            400,
+            599
+          ],
+          "size": [
+            26.5,
+            48
+          ],
+          "z": 40,
+          "radius": 21
+        },
+        {
+          "id": "reading-bench",
+          "asset": "bench",
+          "name": "木长椅",
+          "anchor": [
+            673,
+            602
+          ],
+          "size": [
+            69.77,
+            62
+          ],
+          "z": 50,
+          "radius": 30
+        },
+        {
+          "id": "west-tree",
+          "asset": "tree",
+          "name": "行道树",
+          "anchor": [
+            116,
+            616
+          ],
+          "size": [
+            192.56,
+            221
+          ],
+          "z": 60,
+          "radius": 30
+        },
+        {
+          "id": "east-lamp",
+          "asset": "lamp",
+          "name": "街灯",
+          "anchor": [
+            743,
+            618
+          ],
+          "size": [
+            33.12,
+            162
+          ],
+          "z": 70,
+          "radius": 30
+        },
+        {
+          "id": "square-fountain",
+          "asset": "fountain",
+          "name": "广场喷泉",
+          "anchor": [
+            482,
+            650
+          ],
+          "size": [
+            144.68,
+            127
+          ],
+          "z": 80,
+          "radius": 30
+        },
+        {
+          "id": "market-cart",
+          "asset": "flower-cart",
+          "name": "鲜花推车",
+          "anchor": [
+            267,
+            667
+          ],
+          "size": [
+            163.07,
+            158
+          ],
+          "z": 90,
+          "radius": 30
+        },
+        {
+          "id": "cart-vendor",
+          "asset": "florist",
+          "name": "花店店员",
+          "anchor": [
+            180,
+            686
+          ],
+          "size": [
+            38.13,
+            85
+          ],
+          "z": 100,
+          "radius": 30
+        },
+        {
+          "id": "fountain-musician",
+          "asset": "musician",
+          "name": "街头乐手",
+          "anchor": [
+            568,
+            697
+          ],
+          "size": [
+            42.05,
+            88
+          ],
+          "z": 110,
+          "radius": 30
+        },
+        {
+          "id": "square-child",
+          "asset": "child",
+          "name": "拿冰淇淋的小孩",
+          "anchor": [
+            451,
+            728
+          ],
+          "size": [
+            33.46,
+            70
+          ],
+          "z": 120,
+          "radius": 21
+        },
+        {
+          "id": "square-corgi",
+          "asset": "dog",
+          "name": "小狗",
+          "anchor": [
+            508,
+            746
+          ],
+          "size": [
+            34.92,
+            42
+          ],
+          "z": 130,
+          "radius": 21
+        }
+      ]
+    },
+    {
+      "id": "afternoon-v1",
+      "title": "广场午后",
+      "slots": [
+        {
+          "id": "afternoon-paving",
+          "asset": "paving",
+          "name": "石砖地块",
+          "anchor": [
+            432,
+            790.5
+          ],
+          "size": [
+            143,
+            75
+          ],
+          "z": 0,
+          "radius": 30,
+          "opacity": 0.31
+        },
+        {
+          "id": "afternoon-bakery",
+          "asset": "bakery",
+          "name": "街角面包房",
+          "anchor": [
+            585,
+            510
+          ],
+          "size": [
+            311.19,
+            383
+          ],
+          "z": 10,
+          "radius": 30
+        },
+        {
+          "id": "afternoon-bookshop",
+          "asset": "bookshop",
+          "name": "独立书店",
+          "anchor": [
+            284,
+            536
+          ],
+          "size": [
+            319.61,
+            389
+          ],
+          "z": 20,
+          "radius": 30
+        },
+        {
+          "id": "afternoon-lamp",
+          "asset": "lamp",
+          "name": "街灯",
+          "anchor": [
+            749,
+            568
+          ],
+          "size": [
+            33.12,
+            162
+          ],
+          "z": 30,
+          "radius": 30
+        },
+        {
+          "id": "afternoon-tree",
+          "asset": "tree",
+          "name": "行道树",
+          "anchor": [
+            116,
+            618
+          ],
+          "size": [
+            192.56,
+            221
+          ],
+          "z": 40,
+          "radius": 30
+        },
+        {
+          "id": "afternoon-bench",
+          "asset": "bench",
+          "name": "木长椅",
+          "anchor": [
+            183,
+            621
+          ],
+          "size": [
+            69.77,
+            62
+          ],
+          "z": 50,
+          "radius": 30
+        },
+        {
+          "id": "afternoon-musician",
+          "asset": "musician",
+          "name": "街头乐手",
+          "anchor": [
+            248,
+            627
+          ],
+          "size": [
+            42.05,
+            88
+          ],
+          "z": 60,
+          "radius": 30
+        },
+        {
+          "id": "afternoon-cafe-table",
+          "asset": "cafe-table",
+          "name": "咖啡圆桌",
+          "anchor": [
+            483,
+            632
+          ],
+          "size": [
+            37.19,
+            51
+          ],
+          "z": 70,
+          "radius": 21
+        },
+        {
+          "id": "afternoon-flower-cart",
+          "asset": "flower-cart",
+          "name": "鲜花推车",
+          "anchor": [
+            664,
+            636
+          ],
+          "size": [
+            163.07,
+            158
+          ],
+          "z": 80,
+          "radius": 30
+        },
+        {
+          "id": "afternoon-cafe-chair",
+          "asset": "cafe-chair",
+          "name": "藤椅",
+          "anchor": [
+            517,
+            646
+          ],
+          "size": [
+            26.5,
+            48
+          ],
+          "z": 90,
+          "radius": 21
+        },
+        {
+          "id": "afternoon-fountain",
+          "asset": "fountain",
+          "name": "广场喷泉",
+          "anchor": [
+            352,
+            658
+          ],
+          "size": [
+            144.68,
+            127
+          ],
+          "z": 100,
+          "radius": 30
+        },
+        {
+          "id": "afternoon-florist",
+          "asset": "florist",
+          "name": "花店店员",
+          "anchor": [
+            581,
+            676
+          ],
+          "size": [
+            38.13,
+            85
+          ],
+          "z": 110,
+          "radius": 30
+        },
+        {
+          "id": "afternoon-child",
+          "asset": "child",
+          "name": "拿冰淇淋的小孩",
+          "anchor": [
+            354,
+            727
+          ],
+          "size": [
+            33.46,
+            70
+          ],
+          "z": 120,
+          "radius": 21
+        },
+        {
+          "id": "afternoon-dog",
+          "asset": "dog",
+          "name": "小狗",
+          "anchor": [
+            406,
+            746
+          ],
+          "size": [
+            34.92,
+            42
+          ],
+          "z": 130,
+          "radius": 21
+        }
+      ]
+    }
+  ]
+}

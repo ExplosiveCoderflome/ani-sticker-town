@@ -1,0 +1,251 @@
+{
+  "title": "周末小镇",
+  "theme": "一个热闹的休闲小镇",
+  "tool": "ImageGen",
+  "render": {
+    "transparent_background": true,
+    "prompt_prefix": "Use case: illustration-story. Make ONE standalone usable transparent PNG sprite for a cohesive isometric sticker-puzzle set called WEEKEND TOWN, a lively small town with a bakery and market square. Only draw the following asset: ",
+    "prompt_suffix": "\nART DIRECTION: traditional finely inked and softly gouache-colored miniature architectural paper-model illustration, like charming Japanese stationery town stickers, crisp fine warm umber outlines, a little quiet hand hatching, opaque matte color, restrained honey ochre, muted sage/teal, terracotta and warm cream. Detailed and appealing but deliberately clear when tiny. All objects use the SAME orthographic 2:1 dimetric overhead THREE-QUARTER game camera (elevation approximately 30 degrees, yaw 45 degrees, horizon off frame, verticals upright). Daylight upper left, lit front-left faces. Subtle painted form shading inside object only. Entire silhouette with all edges visible, generously centered, tight sensible margins. Transparent negative space including gaps. No ground plane, shadow underneath, gradient, background, text, letters, numbers, logo, border, halo, white sticker outline, cut line, cast shadow, scenery or unrelated objects. Output genuine RGBA transparency. One object, not an inventory sheet, no labels."
+  },
+  "stickers": [
+    {
+      "file": "stickers/bakery.png",
+      "name": "街角面包房",
+      "suggested_visible_height_px": 390,
+      "subject": "A complete small two-storey corner bakery building, honey cream stucco, terracotta tiled roof, faded coral striped awning, timber bakery window with loaves INSIDE. Closed little door. Architecture only.",
+      "texture_size_px": [
+        1312,
+        1199
+      ],
+      "visible_bounds_ltrb_px": [
+        174,
+        7,
+        1136,
+        1191
+      ],
+      "suggested_uniform_scale": 0.32939
+    },
+    {
+      "file": "stickers/bookshop.png",
+      "name": "独立书店",
+      "suggested_visible_height_px": 385,
+      "subject": "A complete small two-storey independent bookshop building with sage green timber storefront, honey cream stucco upper floor, slate teal pitched roof and books peeking behind glazed window. Building only, no pavement, street furniture or sign text.",
+      "extra_generation_instruction": "Camera pulled back, the ENTIRE building should take ONLY the center 65% of the image canvas width and height. A thick empty buffer on every side including below its lowest stone corner. Visible front threshold and complete, intact building foundation. Absolutely no cropping at the canvas edges.",
+      "texture_size_px": [
+        1254,
+        1254
+      ],
+      "visible_bounds_ltrb_px": [
+        257,
+        192,
+        994,
+        1089
+      ],
+      "suggested_uniform_scale": 0.42921
+    },
+    {
+      "file": "stickers/flower-cart.png",
+      "name": "鲜花推车",
+      "suggested_visible_height_px": 170,
+      "subject": "A single attractive vintage two-wheel wooden florist handcart with a small sage and cream canvas canopy fixed to the cart, buckets of coral and yellow cut flowers sitting IN the cart. No vendor.",
+      "texture_size_px": [
+        1536,
+        1024
+      ],
+      "visible_bounds_ltrb_px": [
+        243,
+        13,
+        1273,
+        1011
+      ],
+      "suggested_uniform_scale": 0.17034
+    },
+    {
+      "file": "stickers/fountain.png",
+      "name": "广场喷泉",
+      "suggested_visible_height_px": 130,
+      "subject": "A single small town square fountain, a circular low honey-grey stone basin, one elegant central pedestal and a modest arcing spray of turquoise water, viewed from above so the basin reads elliptical. No surrounding paving.",
+      "texture_size_px": [
+        1536,
+        1024
+      ],
+      "visible_bounds_ltrb_px": [
+        282,
+        101,
+        1223,
+        927
+      ],
+      "suggested_uniform_scale": 0.15738
+    },
+    {
+      "file": "stickers/bench.png",
+      "name": "木长椅",
+      "suggested_visible_height_px": 70,
+      "subject": "A single empty classic park bench, honey wood slats and dark teal cast iron feet, bench runs from upper left to lower right, front seat and right near end visible. No pavement or plants.",
+      "texture_size_px": [
+        1536,
+        1024
+      ],
+      "visible_bounds_ltrb_px": [
+        177,
+        6,
+        1317,
+        1019
+      ],
+      "suggested_uniform_scale": 0.0691
+    },
+    {
+      "file": "stickers/cafe-table.png",
+      "name": "咖啡圆桌",
+      "suggested_visible_height_px": 60,
+      "subject": "One small EMPTY round bistro table with a honey wood circular tabletop and a single dark teal iron pedestal and foot. Table only, no chairs, crockery, props or people.",
+      "texture_size_px": [
+        1536,
+        1024
+      ],
+      "visible_bounds_ltrb_px": [
+        434,
+        74,
+        1091,
+        975
+      ],
+      "suggested_uniform_scale": 0.06659
+    },
+    {
+      "file": "stickers/cafe-chair.png",
+      "name": "藤椅",
+      "suggested_visible_height_px": 65,
+      "subject": "One EMPTY bentwood bistro chair with an open curved back, a honey-tone woven cane seat and four slim legs, measured human proportions (a full-size cafe chair), no table or person.",
+      "texture_size_px": [
+        1214,
+        1295
+      ],
+      "visible_bounds_ltrb_px": [
+        268,
+        26,
+        957,
+        1274
+      ],
+      "suggested_uniform_scale": 0.05208
+    },
+    {
+      "file": "stickers/tree.png",
+      "name": "行道树",
+      "suggested_visible_height_px": 260,
+      "subject": "One full-grown single small street tree, round airy canopy of clustered sage and olive leaves, warm brown branching trunk visible down to the base. Summer broadleaf tree. No pot, no ground, no plot.",
+      "texture_size_px": [
+        1536,
+        1024
+      ],
+      "visible_bounds_ltrb_px": [
+        338,
+        12,
+        1198,
+        999
+      ],
+      "suggested_uniform_scale": 0.26342
+    },
+    {
+      "file": "stickers/lamp.png",
+      "name": "街灯",
+      "suggested_visible_height_px": 195,
+      "subject": "One classic single town streetlamp, a tall slim dark teal cast iron post, gently tapered base and one cream-glazed lantern at the top, small copper cap. No ground.",
+      "texture_size_px": [
+        887,
+        1774
+      ],
+      "visible_bounds_ltrb_px": [
+        270,
+        55,
+        612,
+        1728
+      ],
+      "suggested_uniform_scale": 0.11656
+    },
+    {
+      "file": "stickers/musician.png",
+      "name": "街头乐手",
+      "suggested_visible_height_px": 112,
+      "subject": "One standing young adult street musician in a muted teal overshirt and tan trousers, strumming an acoustic guitar held against their chest, relaxed and smiling. Musician and held guitar one single sticker. Small full-body storybook townsperson, five heads tall, short dark hair.",
+      "texture_size_px": [
+        1024,
+        1536
+      ],
+      "visible_bounds_ltrb_px": [
+        194,
+        41,
+        894,
+        1506
+      ],
+      "suggested_uniform_scale": 0.07645
+    },
+    {
+      "file": "stickers/child.png",
+      "name": "拿冰淇淋的小孩",
+      "suggested_visible_height_px": 80,
+      "subject": "One small lively child, full body, strolling with a pink ice cream cone in hand, coral t-shirt, denim blue shorts, ochre sneakers, dark hair. Curiosity and delight, subtly dynamic walking pose.",
+      "texture_size_px": [
+        1151,
+        1367
+      ],
+      "visible_bounds_ltrb_px": [
+        205,
+        14,
+        837,
+        1336
+      ],
+      "suggested_uniform_scale": 0.06051
+    },
+    {
+      "file": "stickers/florist.png",
+      "name": "花店店员",
+      "suggested_visible_height_px": 108,
+      "subject": "One cheerful adult florist with a dark bob haircut, warm yellow shirt, sage apron and rust coloured shoes, full body standing in a casual welcoming pose with one hand waving. No furniture or other objects, no bouquets.",
+      "texture_size_px": [
+        1024,
+        1536
+      ],
+      "visible_bounds_ltrb_px": [
+        208,
+        54,
+        858,
+        1503
+      ],
+      "suggested_uniform_scale": 0.07453
+    },
+    {
+      "file": "stickers/dog.png",
+      "name": "小狗",
+      "suggested_visible_height_px": 32,
+      "subject": "One small playful tan-and-cream corgi, standing on all fours looking up expectantly, perky pointed ears and white chest, small red collar. The complete dog only.",
+      "texture_size_px": [
+        1536,
+        1024
+      ],
+      "visible_bounds_ltrb_px": [
+        393,
+        32,
+        1172,
+        969
+      ],
+      "suggested_uniform_scale": 0.03415
+    },
+    {
+      "file": "stickers/paving.png",
+      "name": "石砖地块",
+      "suggested_visible_height_px": 64,
+      "subject": "One modular flat isometric square of warm grey and sandy cream cobblestone paving. Graphic top plane forms a perfect 2:1 isometric diamond, the slab edges are flush and paper-thin, all four points visible, no bevel or extrusion, no kerbs or surrounding vegetation or objects. It should repeat into a pedestrian square when tiled.",
+      "texture_size_px": [
+        1774,
+        887
+      ],
+      "visible_bounds_ltrb_px": [
+        118,
+        42,
+        1656,
+        843
+      ],
+      "suggested_uniform_scale": 0.0799
+    }
+  ]
+}
