@@ -14,6 +14,7 @@ var actors: Dictionary = {}
 var reduced := false
 var time := 0.0
 var sale_emitted := false
+var profile := "market"
 
 func start(payload: Variant, records: Array, reduce: bool) -> bool:
 	if not payload is Dictionary or not payload.get("id") is String:
@@ -43,6 +44,9 @@ func start(payload: Variant, records: Array, reduce: bool) -> bool:
 		return false
 	kind = payload.id
 	actors = found
+	if market:
+		profile = str(found.stall.get("profile", ""))
+		if profile.is_empty(): profile = str(payload.get("profile", "market"))
 	reduced = reduce
 	time = 0.0
 	sale_emitted = false
@@ -205,13 +209,56 @@ func bowl(board: Node2D, p: Vector2) -> void:
 	board.draw_line(p+Vector2(-6,0),p+Vector2(6,0),rim,1.4,true)
 	board.draw_line(p+Vector2(1.5,.4),p+Vector2(5.5,-6),Color("#796345"),1.1,true)
 
+func handover_item(board: Node2D, p: Vector2, seated := false) -> void:
+	var ink := Color("#504b3e")
+	match profile:
+		"market":
+			if "鱿鱼" in str(actors.stall.name):
+				var wood := Color("#d9b57e")
+				board.draw_line(p+Vector2(-4,6), p+Vector2(5,-9), wood, 2.1, true)
+				var tip := p+Vector2(2,-4)
+				board.draw_colored_polygon(PackedVector2Array([tip+Vector2(-4,1),tip+Vector2(1,-6),tip+Vector2(5,-3),tip+Vector2(2,3)]),Color("#c56349"))
+				for i in 3:
+					board.draw_line(tip+Vector2(-2+i*1.6,1),tip+Vector2(-4+i*1.6,4+i%2),Color("#dc9871"),1.3,true)
+			else: bowl(board,p)
+		"books":
+			# The pages open in the reader's hands when a reading place is available.
+			var spread := 9.0 if seated else 5.0
+			for side in [-1.0, 1.0]:
+				var edge := Vector2(side*spread, -2)
+				var pages := PackedVector2Array([p, p+edge, p+edge+Vector2(0,-8), p+Vector2(0,-7)])
+				board.draw_colored_polygon(pages, Color("#ffedbd") if side < 0 else Color("#edcc8c"))
+				board.draw_line(p,p+edge,Color("#925047"),2.2,true)
+				if seated:
+					var turn := sin(phase(.70,.82)*PI)*2.5
+					board.draw_line(p+Vector2(side*2,-4),p+Vector2(side*(spread-2),-5-turn),ink,.8,true)
+		"garden":
+			board.draw_colored_polygon(PackedVector2Array([p+Vector2(-6,-2),p+Vector2(6,-2),p+Vector2(4,5),p+Vector2(-4,5)]),Color("#b87854"))
+			var shoot := p+Vector2(0,-8-(3.0*sin(phase(.70,.82)*PI) if seated else 0.0))
+			board.draw_line(p+Vector2(0,-2),shoot,Color("#57734e"),1.5,true)
+			draw_leaf(board,shoot+Vector2(-2,-1),.6,Color("#819559"))
+			draw_leaf(board,shoot+Vector2(2,-3),-.6,Color("#58794c"))
+		"studio":
+			board.draw_circle(p,5.2,Color("#daae77"),true,-1,true)
+			for i in 3:
+				board.draw_circle(p+Vector2.from_angle(-2.7+i*1.2)*3,1.5,[Color("#9b5342"),Color("#587d79"),Color("#c9973b")][i],true,-1,true)
+			var tip := p+Vector2(6,-8)
+			if seated: tip.x += sin(time*TAU*9)*3.0
+			board.draw_line(p+Vector2(2,2),tip,ink,1.6,true)
+		"general":
+			board.draw_rect(Rect2(p-Vector2(5,6),Vector2(11,10)),Color("#d8af77"))
+			board.draw_line(p+Vector2(0,-6),p+Vector2(0,4),Color("#8a6248"),1.5,true)
+		_:
+			bowl(board,p)
+
 func carried(board: Node2D, slot: Dictionary) -> void:
 	if kind != "market-buy" or reduced or slot.get("role") != "customer" or not owns(slot) or time < .44 or time>.91: return
 	var size := size_of("customer")
 	var p := Vector2(-size.x*.22,-size.y*.46)
-	if actors.has("chair") and time>.70 and time<.82:
+	var seated := actors.has("chair") and time>.70 and time<.82
+	if seated:
 		p.y -= 5.0*absf(sin(phase(.70,.82)*TAU))
-	bowl(board,p)
+	handover_item(board,p,seated)
 
 func market_props(board: Node2D) -> void:
 	var stall := anchor("stall")
@@ -219,12 +266,12 @@ func market_props(board: Node2D) -> void:
 	var side := -1.0 if market_stop().x<stall.x else 1.0
 	var counter := stall+Vector2(side*shop.x*.22,-shop.y*.35)
 	if reduced:
-		bowl(board,counter)
-		board.draw_circle(counter+Vector2(7,-10),3.5,Color("#e3b453"),true,-1,true)
+		handover_item(board,counter)
 		return
 	var guest := customer_position()
 	var hand := guest+Vector2(-side*size_of("customer").x*.25,-size_of("customer").y*.43)
 	for i in 3:
+		if profile != "market": break
 		var f := phase(.29+i*.03,.37+i*.03)
 		if f<=0 or f>=1: continue
 		var p := hand.lerp(counter,f)+Vector2(0,-sin(PI*f)*13)
@@ -232,7 +279,7 @@ func market_props(board: Node2D) -> void:
 		board.draw_circle(p,3.4,Color("#f4cb65"),true,-1,true)
 		board.draw_line(p+Vector2(0,-1.7),p+Vector2(0,1.7),Color("#b88037"),1,true)
 	var serve := phase(.385,.445)
-	if serve>0 and serve<1: bowl(board,counter.lerp(hand,serve)+Vector2(0,-sin(PI*serve)*4))
+	if serve>0 and serve<1: handover_item(board,counter.lerp(hand,serve)+Vector2(0,-sin(PI*serve)*4))
 
 func draw_note(board: Node2D,p: Vector2,color: Color) -> void:
 	board.draw_circle(p,2.7,color,true,-1,true)

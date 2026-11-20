@@ -8,6 +8,7 @@ from io import BytesIO
 import json
 import os
 from pathlib import Path
+import socket
 import sqlite3
 from urllib.parse import urlsplit, urlunsplit
 import webbrowser
@@ -15,8 +16,20 @@ import sticker_service
 
 
 SITE = Path(__file__).resolve().parents[1] / "play"
-SITE_ID = hashlib.sha256(os.path.normcase(str(SITE)).encode()).hexdigest()[:16]
+SITE_ID = hashlib.sha256(os.path.normcase(str(SITE)).encode() +
+                         Path(__file__).read_bytes() + Path(sticker_service.__file__).read_bytes() +
+                         bytes([sticker_service.available()])).hexdigest()[:16]
 HOST = "127.0.0.1"
+
+
+class LocalGameServer(ThreadingHTTPServer):
+    allow_reuse_address = os.name != "nt"
+
+    def server_bind(self):
+        # Windows otherwise allows two game versions to listen on the same port.
+        if os.name == "nt":
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
 
 
 def accepts_gzip(header):
@@ -151,13 +164,13 @@ def main():
     args = parser.parse_args()
     handler = partial(GameHandler, directory=str(SITE))
     for port in range(args.port, args.port + 10):
-        url = f"http://{HOST}:{port}/"
+        url = f"http://{HOST}:{port}/?workshop=1"
         if is_our_server(port):
             if args.open:
                 webbrowser.open(url)
             return
         try:
-            server = ThreadingHTTPServer((HOST, port), handler)
+            server = LocalGameServer((HOST, port), handler)
         except OSError:
             if is_our_server(port):
                 if args.open:

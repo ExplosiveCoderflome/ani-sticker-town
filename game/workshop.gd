@@ -3,6 +3,7 @@ extends RefCounted
 const MAX_ITEMS := 15
 const BOARD := Vector2(864, 900)
 const MARKET_ROLES := ["stall","table","chair","customer"]
+const PROFILES := ["market", "books", "garden", "studio", "general"]
 var catalog: Dictionary = {}
 var bases: Array = []
 var records: Array = []
@@ -17,9 +18,9 @@ func configure(levels: Array) -> void:
 				add_asset(slot.asset, slot.name, slot.size, float(slot.get("opacity", 1.0)))
 	add_asset("black-cat", "小黑猫", [52, 62])
 
-func add_asset(id: String, title: String, size: Array, opacity := 1.0, role := "") -> void:
+func add_asset(id: String, title: String, size: Array, opacity := 1.0, role := "", profile := "") -> void:
 	catalog[id] = {"id": "kit:" + id, "asset": id, "name": title, "size": size, "opacity": opacity,
-		"role":role if MARKET_ROLES.has(role) and is_generated(id) else ""}
+		"role":role if MARKET_ROLES.has(role) and is_generated(id) else "", "profile":profile}
 
 func is_generated(id: String) -> bool:
 	if not id.begins_with("gen-") or id.length() != 36:
@@ -32,7 +33,7 @@ func is_generated(id: String) -> bool:
 func make_slot(asset: String, id: String, x: float, y: float, z: int) -> Dictionary:
 	var item: Dictionary = catalog[asset]
 	return {"id": id, "asset": asset, "name": item.name, "size": item.size,
-		"anchor":[x, y],"z":z,"opacity":item.opacity,"role":item.role,"radius":clampf(minf(item.size[0], item.size[1]) * 0.35, 12, 30)}
+		"anchor":[x, y],"z":z,"opacity":item.opacity,"role":item.role,"profile":item.profile,"radius":clampf(minf(item.size[0], item.size[1]) * 0.35, 12, 30)}
 
 func item_at(id: String) -> Dictionary:
 	for record in records:

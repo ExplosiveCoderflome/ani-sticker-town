@@ -1,0 +1,53 @@
+{
+  "theme": "雨天的街角书屋",
+  "stickers": [
+    {
+      "id": "gen-cd0842c954f1027b3bb330dac040d66c",
+      "name": "雨篷书亭",
+      "role": "stall",
+      "size": [
+        196.87,
+        216.0
+      ],
+      "width": 494,
+      "height": 542,
+      "file": "stall.png"
+    },
+    {
+      "id": "gen-14f893476c457ae158685a0c26eb04f5",
+      "name": "橡木阅览桌",
+      "role": "table",
+      "size": [
+        81.0,
+        72.0
+      ],
+      "width": 270,
+      "height": 240,
+      "file": "table.png"
+    },
+    {
+      "id": "gen-0042b884d2f9353c9a957fe54c3b00e8",
+      "name": "蜂蜜色阅读椅",
+      "role": "chair",
+      "size": [
+        35.89,
+        57.0
+      ],
+      "width": 119,
+      "height": 189,
+      "file": "chair.png"
+    },
+    {
+      "id": "gen-8ec3ea532f9721c7d134c61f61a5c08f",
+      "name": "红贝雷帽读者",
+      "role": "customer",
+      "size": [
+        29.77,
+        88.0
+      ],
+      "width": 90,
+      "height": 266,
+      "file": "customer.png"
+    }
+  ]
+}

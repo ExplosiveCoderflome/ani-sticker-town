@@ -16,6 +16,7 @@ var garden_mode := false
 var market_mode := false
 var market_kit: Array = []
 var market_theme := ""
+var market_profile := "market"
 var market_backdrop := NightMarket.new()
 var mode := "puzzle"
 var progress_key := ""
@@ -178,7 +179,7 @@ func _level_for(base: String) -> Dictionary:
 			return entry
 	return levels[0]
 
-func _open_edit(base: String, garden := false, kit: Array = [], theme := "") -> void:
+func _open_edit(base: String, garden := false, kit: Array = [], theme := "", profile := "market") -> void:
 	mode = "edit"
 	garden_mode = garden
 	market_mode = not kit.is_empty()
@@ -187,12 +188,15 @@ func _open_edit(base: String, garden := false, kit: Array = [], theme := "") -> 
 	if market_mode:
 		market_kit = kit.duplicate()
 		market_theme = theme
-		progress_key = "market.v1." + str(kit[0])
+		market_profile = profile
+		progress_key = "market.v2." + ".".join(PackedStringArray(kit))
 	selected = ""
 	saved = true
 	_reset_view()
 	var empty := workshop.from_slots(level.id, theme.left(32) if market_mode else "我的小镇", [])
 	var raw := _read_saved(progress_key)
+	if raw.is_empty() and market_mode and profile == "market":
+		raw = _read_saved("market.v1." + str(kit[0]))
 	var draft := empty if raw.is_empty() else workshop.normalize(JSON.parse_string(raw), true)
 	var seed := garden and raw.is_empty() and str(level.id) == "weekend-town-v1"
 	if seed:
@@ -206,6 +210,11 @@ func _open_edit(base: String, garden := false, kit: Array = [], theme := "") -> 
 		var first := [["paving",432,790],["bookshop",545,450],["tree",102,584],["lamp",737,557],
 			[kit[0],275,557],[kit[0],583,560],["lamp",154,665],[kit[1],411,650],[kit[2],447,682],
 			[kit[3],289,720],[kit[3],673,681]]
+		if profile != "market" or theme != "一个热闹的夜市":
+			first = [["paving",432,790], ["tree",133,523], [kit[0],365,510],
+				[kit[1],485,594], [kit[2],525,620]]
+			if profile == "market": first.insert(2, ["lamp",597,495])
+			selected = "kit:" + str(kit[3])
 		for data in first:
 			var p := workshop.clamp_anchor(Vector2(data[1],data[2]),workshop.catalog[data[0]].size)
 			draft.items.append({"asset":data[0],"x":p.x,"y":p.y,"z":draft.items.size()})
@@ -229,8 +238,10 @@ func _open_market(payload: Variant) -> bool:
 		if not ids[i] is String or not workshop.is_generated(ids[i]) or not workshop.catalog.has(ids[i]):
 			return false
 		if workshop.catalog[ids[i]].role != workshop.MARKET_ROLES[i]: return false
-	if not market_mode or market_kit != ids:
-		_open_edit("weekend-town-v1",false,ids,label)
+	var profile: String = str(payload.get("profile", "market"))
+	if not workshop.PROFILES.has(profile): return false
+	if not market_mode or market_kit != ids or market_profile != profile:
+		_open_edit("weekend-town-v1",false,ids,label,profile)
 	return true
 
 func _request_missing() -> void:
@@ -270,7 +281,7 @@ func _open_gift(work: Dictionary) -> bool:
 	return true
 
 func _night_scene() -> bool:
-	return market_mode or (mode == "gift" and level.get("ambience","") == "night")
+	return (market_mode and market_profile == "market") or (mode == "gift" and level.get("ambience","") == "night")
 
 func _active_work() -> Dictionary:
 	var visible: Array = []
@@ -284,6 +295,9 @@ func _register_asset(input) -> bool:
 		return false
 	var size = input.get("size")
 	var role = input.get("role","")
+	var profile = input.get("profile","")
+	if not profile is String or (profile != "" and not workshop.PROFILES.has(profile)):
+		return false
 	if not role is String or (role != "" and not workshop.MARKET_ROLES.has(role)):
 		return false
 	var uri = input.get("data")
@@ -325,13 +339,14 @@ func _register_asset(input) -> bool:
 	var id: String = input.id
 	textures[id] = ImageTexture.create_from_image(img)
 	masks[id] = img
-	workshop.add_asset(id, str(input.get("name", "定制贴纸")).strip_edges().left(60), size,1,role)
+	workshop.add_asset(id, str(input.get("name", "定制贴纸")).strip_edges().left(60), size,1,role,profile)
 	# Existing instances always reflect what this install's current registration actually verified.
 	for slot in slots:
 		if slot.asset == id:
 			if slot.get("role","") != role:
 				_stop_encounter()
 			slot.role = role
+			slot.profile = profile
 	if mode == "edit" and not pending_draft.is_empty() and workshop.missing(pending_draft).is_empty():
 		workshop.restore(pending_draft)
 		pending_draft = {}
@@ -640,7 +655,7 @@ func _on_web_action(args: Array) -> void:
 			return
 		"mode":
 			if payload == "market" and not market_mode and not market_kit.is_empty():
-				_open_market({"ids":market_kit,"theme":market_theme})
+				_open_market({"ids":market_kit,"theme":market_theme,"profile":market_profile})
 			elif payload == "garden" and (mode != "edit" or not garden_mode):
 				_open_edit(level.id, true)
 			elif payload == "edit" and mode != "edit":
@@ -738,6 +753,7 @@ func _publish(initial := false) -> void:
 		return
 	var state := JSON.stringify({"mode":mode, "levelId":level.id, "title":draft_title if mode == "edit" else level.title,
 		"marketMode":market_mode, "marketKit":market_kit if market_mode else [], "marketTheme":market_theme if market_mode else "",
+		"marketProfile":market_profile if market_mode else "",
 		"slots":slots, "catalog":workshop.catalog.values(), "total":slots.size(), "placed":placed, "selected":selected,
 		"canUndo":not workshop.history.is_empty() if mode == "edit" else not placed.is_empty(),
 		"complete":mode != "edit" and not slots.is_empty() and placed.size() == slots.size(),

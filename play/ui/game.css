@@ -190,6 +190,12 @@ dialog.reference-dialog{width:min(580px,calc(100vw - 28px));padding:15px}
 #market-status{flex:1;font-size:13px;line-height:1.5;color:#fff2d9}
 #market-reopen{flex:none;padding:6px 9px;border:1px solid #c3aa7b;border-radius:5px;background:#ffefc9;color:#443c30;font-size:12px}
 #market-reopen:disabled{color:#d9d4c4;background:transparent;border-color:#89918a;opacity:.8}
+#market-ledger{flex-wrap:wrap}
+#market-discoveries{display:flex;flex-basis:100%;align-items:center;gap:7px;border-top:1px solid #69746c;padding-top:6px;color:#f3e7d1;font-size:11px}
+#market-discoveries>b,#market-found{font-variant-numeric:tabular-nums}
+#market-discoveries span+span{border:1px dashed #a7afa4;border-radius:3px;padding:1px 7px}
+#market-discoveries span.found{border:1px solid #f1d394;color:#253c32;background:#f1d394}
+@media(max-width:790px){#market-discoveries{grid-column:1/-1}}
 .night-market{background:#f1ede4}
 .night-market .board{background:#303c48}
 .night-market .scene-heading h1{color:#493a35}

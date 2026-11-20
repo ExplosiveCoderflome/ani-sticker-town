@@ -1,4 +1,4 @@
-"""Build the v0.4 local-play ZIP from the published game and its runtime files."""
+"""Build the v0.5 local-play ZIP from the published game and its runtime files."""
 import argparse
 import gzip
 import json
@@ -9,7 +9,7 @@ from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile, ZipInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DESTINATION = ROOT / "releases" / "sticker-town-v0.4.zip"
+DESTINATION = ROOT / "releases" / "sticker-town-v0.5.zip"
 UI_FILES = (
     "game.css", "custom.css", "game.js", "gift.js", "parcel.js", "custom.js",
     "encounters.js", "garden.js", "night-rules.js", "night-market.js",
@@ -20,16 +20,16 @@ GODOT_FILES = (
     "town.audio.position.worklet.js", "town.png", "town.icon.png",
     "town.apple-touch-icon.png",
 )
-NIGHT_MARKET_FILES = ("kit.json", "stall.png", "table.png", "chair.png", "customer.png")
-QUICKSTART = """小镇贴纸簿 v0.4
+KIT_FILES = ("kit.json", "stall.png", "table.png", "chair.png", "customer.png")
+QUICKSTART = """小镇贴纸簿 v0.5 · 主题工坊
 
 解压整个 ZIP 后再开始。
 
 Windows 安装 Python 3.9 或以上版本及 Python Launcher，然后双击「开始试玩.cmd」。
 macOS 或 Linux 在解压目录运行 python3 tools/serve.py --open。
-浏览器默认进入自由造景。选取或移动贴纸，看看邻近的居民和物件会做什么。
-从首页进入夜市，把顾客摆到摊位旁。摊位附近有成对的桌椅时，顾客还能入座。
-打开手记可以回看已经发现的故事。两套官方拼图和制作礼物的玩法也可继续使用。
+工坊中的「海风夜市」可以直接试玩。开盒后点烤鱿鱼摊旁的空地放下游客。
+把凳子挪远，游客会改为外带。换到「雨天的街角书屋」还能请读者来借书。
+输入自己的主题，连接 Recraft 后可以逐件绘制。在其他 AI 绘图工具生成透明四格图也可以导入工坊，拆开后每件都能单独用。
 
 「定制贴纸 → 写路牌」可以在本机制作文字路牌。「存明信片」保存 PNG；
 「封装成礼物 → 下载可玩的礼物」生成可发送给朋友的独立 HTML。
@@ -48,7 +48,8 @@ def release_files():
     }
     paths.update("play/" + name for name in GODOT_FILES)
     paths.update("play/ui/" + name for name in UI_FILES)
-    paths.update("play/media/night-market/" + name for name in NIGHT_MARKET_FILES)
+    for kit in ("night-market", "bookshop", "seaside-market"):
+        paths.update(f"play/media/{kit}/{name}" for name in KIT_FILES)
 
     # Only the shipped layouts and the built-in cat belong in the release.
     levels = json.loads((ROOT / "play/media/levels.json").read_text(encoding="utf-8"))

@@ -1,0 +1,53 @@
+{
+  "theme": "海风夜市",
+  "stickers": [
+    {
+      "id": "gen-b0be9653bc46f3b0c159ae0ea21dbddf",
+      "name": "海风烤鱿鱼摊",
+      "role": "stall",
+      "size": [
+        183.02,
+        213.0
+      ],
+      "width": 464,
+      "height": 540,
+      "file": "stall.png"
+    },
+    {
+      "id": "gen-4c8a52b034268b8efe792261d7aa0990",
+      "name": "海蓝折叠桌",
+      "role": "table",
+      "size": [
+        82.01,
+        73.0
+      ],
+      "width": 264,
+      "height": 235,
+      "file": "table.png"
+    },
+    {
+      "id": "gen-9e24cb1a06ba0cb2dbb17a1972cff290",
+      "name": "珊瑚折叠凳",
+      "role": "chair",
+      "size": [
+        41.79,
+        48.0
+      ],
+      "width": 148,
+      "height": 170,
+      "file": "chair.png"
+    },
+    {
+      "id": "gen-19cd29ce4e7972065fb2288a19cd16c2",
+      "name": "条纹衫游客",
+      "role": "customer",
+      "size": [
+        36.9,
+        87.0
+      ],
+      "width": 109,
+      "height": 257,
+      "file": "customer.png"
+    }
+  ]
+}

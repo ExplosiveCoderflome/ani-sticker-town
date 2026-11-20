@@ -30,6 +30,8 @@ MAX_PNG = 4 * 1024 * 1024
 MAX_POST = MAX_PNG * 4 // 3 + 8192
 GENERATION_LOCK = threading.Lock()
 MARKET_DIR = Path(__file__).resolve().parents[1] / "play" / "media" / "night-market"
+BOOKSHOP_DIR = MARKET_DIR.parent / "bookshop"
+SEASIDE_DIR = MARKET_DIR.parent / "seaside-market"
 MARKET_ROLES = ("stall", "table", "chair", "customer")
 INVALID_TEXT = re.compile(r"[\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069\ud800-\udfff]")
 JS_TRIM = "\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
@@ -42,6 +44,54 @@ ROLES = {
     "chair": ("餐椅", (48, 58), "Draw ONE standalone empty market dining CHAIR with an unmistakable open seat and backrest. Show the whole silhouette from top to legs in three-quarter view. Keep tables, booths and people outside this object."),
     "customer": ("食客", (48, 85), "Draw ONE full-body human CUSTOMER on foot, in casual clothing that suits the requested market. Give them an eager, hungry expression and an easy-to-read gaze toward a stall. Include only the shopper from head to feet, with no scenery or furniture."),
 }
+
+# Ordered so that a book market, flower market or craft market keeps its specialty.
+PROFILE_TERMS = {
+    "books": ("书店", "书市", "书摊", "书屋", "书房", "书馆", "书籍", "读书", "阅读", "书展", "書店", "書市", "書屋", "閱讀", "book", "library", "reading"),
+    "garden": ("花园", "花店", "花市", "花摊", "花圃", "花卉", "园艺", "苗圃", "植物", "温室", "花藝", "花園", "園藝", "garden", "flower", "plant", "botanical", "greenhouse"),
+    "studio": ("画室", "画廊", "工坊", "工作室", "手作", "手工艺", "陶艺", "陶瓷", "画坊", "畫室", "工作坊", "陶藝", "studio", "workshop", "pottery", "craft", "atelier"),
+    "market": ("夜市", "馄饨", "小吃", "美食", "早市", "餐厅", "食堂", "咖啡", "甜品", "饭馆", "夜攤", "餐廳", "night market", "street food", "diner", "food", "café", "cafe", "coffee", "restaurant"),
+    "general": (),
+}
+PROFILE_COMPONENTS = {
+    "books": {
+        "stall": ("书摊", "One open-front book kiosk displaying books with varied spines and a low browsing ledge."),
+        "table": ("阅览桌", "One freestanding reading desk with an open book, a clear tabletop and visible legs."),
+        "chair": ("阅读椅", "One empty reading chair with a supportive back and a worn seat cushion."),
+        "customer": ("读者", "One standing full-body reader, carrying a book under one arm and looking toward new titles."),
+    },
+    "garden": {
+        "stall": ("花摊", "One open-front plant stand displaying pots, seedlings and foliage; the front counter is accessible."),
+        "table": ("园艺桌", "One standalone potting table, with a trowel and a little soil tray on its wooden work surface."),
+        "chair": ("园艺凳", "One empty sturdy garden stool with a broad seat and short wooden legs."),
+        "customer": ("园丁", "One standing full-body gardener in a work apron, ready to select a plant for potting."),
+    },
+    "studio": {
+        "stall": ("工艺展摊", "One open-front artisan booth displaying finished crafts made in the requested medium."),
+        "table": ("工作台", "One freestanding artisan worktable with one small tool suited to the requested craft."),
+        "chair": ("工作凳", "One empty workshop stool, with a solid seat and clearly visible legs."),
+        "customer": ("学徒", "One standing full-body craft apprentice, wearing an apron suitable for this particular workshop."),
+    },
+    "general": {
+        "stall": ("陈列摊", "One open-front kiosk displaying objects specific to this theme. Invent the objects from the description."),
+        "table": ("活动桌", "One freestanding activity table. Its work surface and materials should suggest what visitors do here."),
+        "chair": ("座椅", "One empty freestanding seat appropriate for visitors to the requested place."),
+        "customer": ("访客", "One standing full-body visitor with an outfit and a handheld object specific to the requested theme."),
+    },
+}
+
+
+def theme_profile(theme):
+    text = unicodedata.normalize("NFKC", theme).lower()
+    return next((profile for profile, terms in PROFILE_TERMS.items() if any(term in text for term in terms)), "general")
+
+
+def role_spec(role, profile):
+    label, frame, composition = ROLES[role]
+    if role in MARKET_ROLES and profile in PROFILE_COMPONENTS:
+        label, subject = PROFILE_COMPONENTS[profile][role]
+        composition = subject + " Depict this single isolated component, with no extra characters, furniture or scenery."
+    return label, frame, composition
 
 
 class StickerError(Exception):
@@ -62,13 +112,16 @@ def database():
     db.row_factory = sqlite3.Row
     db.execute("""CREATE TABLE IF NOT EXISTS stickers (
         id TEXT PRIMARY KEY, name TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL,
-        draw_width REAL NOT NULL, draw_height REAL NOT NULL, png BLOB NOT NULL, role TEXT
+        draw_width REAL NOT NULL, draw_height REAL NOT NULL, png BLOB NOT NULL, role TEXT, profile TEXT
     )""")
-    if "role" not in {row["name"] for row in db.execute("PRAGMA table_info(stickers)")}:
+    columns = {row["name"] for row in db.execute("PRAGMA table_info(stickers)")}
+    if not {"role", "profile"}.issubset(columns):
         with db:
             db.execute("BEGIN IMMEDIATE")
-            if "role" not in {row["name"] for row in db.execute("PRAGMA table_info(stickers)")}:
-                db.execute("ALTER TABLE stickers ADD COLUMN role TEXT")
+            columns = {row["name"] for row in db.execute("PRAGMA table_info(stickers)")}
+            for column in ("role", "profile"):
+                if column not in columns:
+                    db.execute(f"ALTER TABLE stickers ADD COLUMN {column} TEXT")
     db.execute("""CREATE TABLE IF NOT EXISTS theme_jobs (
         request_key TEXT PRIMARY KEY, sticker_id TEXT, started REAL NOT NULL DEFAULT 0
     )""")
@@ -76,18 +129,21 @@ def database():
 
 
 def metadata(row):
+    profile = row["profile"]
+    if not profile and row["role"] in MARKET_ROLES:
+        profile = theme_profile(row["name"].partition("·")[0])
     return {
         "id": row["id"], "name": row["name"], "width": row["width"], "height": row["height"],
         "size": [row["draw_width"], row["draw_height"]], "image": f'{PREFIX}/{row["id"]}/image.png',
-        "role": row["role"],
+        "role": row["role"], "profile": profile,
     }
 
 
-FIELDS = "id, name, width, height, draw_width, draw_height, role"
+FIELDS = "id, name, width, height, draw_width, draw_height, role, profile"
 
 
-def market_kit():
-    root = MARKET_DIR.resolve()
+def read_kit(root, profile):
+    root = root.resolve()
     try:
         contents = json.loads((root / "kit.json").read_text(encoding="utf-8-sig"))
         theme = display_name(contents["theme"], 80)
@@ -116,24 +172,32 @@ def market_kit():
             if ((width, height) != (item["width"], item["height"])
                     or not (1 <= width <= 2048 and 1 <= height <= 2048)):
                 raise ValueError("invalid market dimensions")
-            meta = {"id":asset_id, "role":role, "name":display_name(item["name"],40), "size":size,
+            meta = {"id":asset_id, "role":role, "profile":profile, "name":display_name(item["name"],40), "size":size,
                     "width":width, "height":height, "image":f"{PREFIX}/{asset_id}/image.png"}
             by_role[role] = (meta, path)
             ids.add(asset_id)
             filenames.add(filename)
         return theme, [by_role[role] for role in MARKET_ROLES]
     except (OSError, ValueError, TypeError, KeyError, struct.error, StickerError) as exc:
-        raise StickerError(503, "夜市样盒的素材不齐，请使用完整的试玩包。") from exc
+        raise StickerError(503, "样盒的素材不齐，请使用完整的试玩包。") from exc
 
 
 def get(path):
-    if path == PREFIX + "/night-market":
-        theme, assets = market_kit()
-        return {"theme":theme, "stickers":[meta for meta, _ in assets]}
+    kits = {"night-market": (MARKET_DIR, "market"), "bookshop": (BOOKSHOP_DIR, "books"),
+            "seaside-market": (SEASIDE_DIR, "market")}
+    if path == PREFIX + "/profiles":
+        return {"fallback":"general", "profiles":[
+            {"id":profile, "terms":list(terms), "labels":{role:role_spec(role, profile)[0] for role in MARKET_ROLES}}
+            for profile, terms in PROFILE_TERMS.items()]}
+    name = path.removeprefix(PREFIX + "/")
+    if name in kits:
+        directory, profile = kits[name]
+        theme, assets = read_kit(directory, profile)
+        return {"theme":theme, "profile":profile, "stickers":[meta for meta, _ in assets]}
     if path == PREFIX:
         with closing(database()) as db:
             rows = db.execute(f"SELECT {FIELDS} FROM stickers ORDER BY rowid DESC")
-            return {"ai": available(), "stickers": [metadata(row) for row in rows]}
+            return {"ai": available(), "interactiveImport": True, "stickers": [metadata(row) for row in rows]}
     match = ASSET_ROUTE.fullmatch(path)
     if match:
         field = "png" if match[2] else FIELDS
@@ -141,8 +205,13 @@ def get(path):
             row = db.execute(f"SELECT {field} FROM stickers WHERE id = ?", (match[1],)).fetchone()
         if row:
             return bytes(row["png"]) if match[2] else metadata(row)
-        if (MARKET_DIR / "kit.json").is_file():
-            _, assets = market_kit()
+        for directory, profile in kits.values():
+            if not (directory / "kit.json").is_file():
+                continue
+            try:
+                _, assets = read_kit(directory, profile)
+            except StickerError:
+                continue  # A damaged sample must not block assets from another sample.
             for meta, file in assets:
                 if meta["id"] == match[1]:
                     return file.read_bytes() if match[2] else meta
@@ -168,7 +237,32 @@ def decode_base64(text, limit):
     return blob
 
 
-def png_size(blob):
+def has_cutout(decoded, width, height, channels):
+    # All-zero and all-255 alpha images have known bytes under every PNG filter.
+    # Test those two cases directly, without a second full-size RGBA image or Pillow.
+    stride = width * channels + 1
+    if max(decoded[::stride]) > 4:
+        return False
+    visible = transparent = False
+    for y in range(height):
+        start = y * stride
+        method = decoded[start]
+        alpha = decoded[start + channels:start + stride:channels]
+        visible |= bool(alpha.strip(b"\x00"))
+        if method == 0 or (method == 2 and y == 0):
+            transparent |= bool(alpha.strip(b"\xff"))
+        elif method == 3:
+            first, rest = (255, 128) if y == 0 else (128, 0)
+            transparent |= alpha[0] != first or bool(alpha[1:].strip(bytes([rest])))
+        elif method in (1, 2, 4):
+            first = 255 if method == 1 or y == 0 else 0
+            transparent |= alpha[0] != first or bool(alpha[1:].strip(b"\x00"))
+        if visible and transparent:
+            return True
+    return False
+
+
+def png_size(blob, cutout=False):
     # Canvas signs are noninterlaced PNGs. Bound decompression and check chunk CRCs before storing.
     if not blob.startswith(b"\x89PNG\r\n\x1a\n") or len(blob) > MAX_PNG:
         raise ValueError("invalid PNG")
@@ -201,25 +295,29 @@ def png_size(blob):
             stream = zlib.decompressobj()
             decoded = stream.decompress(image_data, expected_size + 1)
             if stream.eof and not stream.unused_data and len(decoded) == expected_size:
+                if cutout and not (color in (4, 6) and depth == 8 and has_cutout(decoded, width, height, channels)):
+                    raise ValueError("no visible transparent cutout")
                 return width, height
             break
         position = end
     raise ValueError("invalid PNG")
 
 
-def save(name, png, frame, request_key=None, role=None):
-    width, height = png_size(png)
+def save(name, png, frame, request_key=None, role=None, profile=None, cutout=False):
+    width, height = png_size(png, cutout)
     scale = min(frame[0] / width, frame[1] / height)
     size = [max(1, round(d * scale, 2)) for d in (width, height)]
     # A repeated save of an identical named sticker should keep its shared identifier.
     stamp = bytes(frame) if max(frame) < 256 else struct.pack(">HH", *frame)
     if role:
         stamp += b"\0" + role.encode("ascii")
+    if profile:
+        stamp += b"\0" + profile.encode("ascii")
     digest = hashlib.sha256(name.encode() + b"\0" + png + stamp).hexdigest()[:32]
     sticker_id = "gen-" + digest
     with closing(database()) as db, db:
-        db.execute("INSERT OR IGNORE INTO stickers (id,name,width,height,draw_width,draw_height,png,role)"
-                   " VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (sticker_id, name, width, height, *size, png, role))
+        db.execute("INSERT OR IGNORE INTO stickers (id,name,width,height,draw_width,draw_height,png,role,profile)"
+                   " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (sticker_id, name, width, height, *size, png, role, profile))
         if request_key:
             db.execute("UPDATE theme_jobs SET sticker_id=?, started=0 WHERE request_key=?",
                        (sticker_id, request_key))
@@ -267,15 +365,19 @@ def claim_theme(key):
     return None
 
 
-def generate(prompt, role=None, edition=None):
+def generate(prompt, role=None, edition=None, profile=None):
     request_key = None
     name, frame = prompt[:40], (145, 145)
     subject = "Single isolated subject: " + prompt
     if role:
-        label, frame, composition = ROLES[role]
+        inferred = theme_profile(prompt) if role in MARKET_ROLES else None
+        profile = profile or inferred
+        label, frame, composition = role_spec(role, profile)
         name = prompt[:10] + "·" + label
         subject = composition + " Use this theme as inspiration: " + prompt
         cache_label = "theme-v1\0" + role + "\0" + prompt
+        if profile != inferred:
+            cache_label += "\0profile:" + profile
         if edition:
             cache_label += "\0edition:" + edition
         request_key = hashlib.sha256(cache_label.encode()).hexdigest()
@@ -317,7 +419,7 @@ def generate(prompt, role=None, edition=None):
         image.thumbnail((768, 768), Image.Resampling.LANCZOS)
         output = BytesIO()
         image.save(output, format="PNG")
-        return save(name, output.getvalue(), frame, request_key, role)
+        return save(name, output.getvalue(), frame, request_key, role, profile)
     except (KeyError, TypeError, IndexError, ValueError, OSError) as exc:
         raise StickerError(502, "生成图的透明边缘或格式不合适，请换个描述再试。") from exc
     finally:
@@ -328,6 +430,13 @@ def generate(prompt, role=None, edition=None):
                                (request_key,))
         finally:
             GENERATION_LOCK.release()
+
+
+def requested_profile(body, role):
+    profile = body.get("profile")
+    if profile is not None and (role not in MARKET_ROLES or not isinstance(profile, str) or profile not in PROFILE_TERMS):
+        raise StickerError(400, "请选择已有的互动主题类型。")
+    return profile
 
 
 def post(path, body):
@@ -342,15 +451,31 @@ def post(path, body):
             if edition is not None and (role not in MARKET_ROLES or not isinstance(edition, str)
                                         or not re.fullmatch(r"[0-9a-f]{32}", edition)):
                 raise StickerError(400, "这次重新绘制的编号无效。")
-            return generate(display_name(body.get("theme"), 240), role, edition)
+            return generate(display_name(body.get("theme"), 240), role, edition, requested_profile(body, role))
         return generate(display_name(body.get("prompt"), 240))
     if path != PREFIX:
         raise StickerError(404, "找不到这个贴纸入口。")
-    name = display_name(body.get("name"), 40)
+    role = profile = None
+    if body.get("kind") == "interactive":
+        role = body.get("role")
+        if role not in MARKET_ROLES:
+            raise StickerError(400, "请选择摊位、桌、椅或来访角色。")
+        theme = display_name(body.get("theme"), 240)
+        profile = requested_profile(body, role) or theme_profile(theme)
+        label, frame, _ = role_spec(role, profile)
+        name = display_name(body.get("name", theme[:10] + "·" + label), 40)
+    elif body.get("kind") == "sign":
+        name = display_name(body.get("name"), 40)
+        frame = (146, 45)
+    else:
+        raise StickerError(400, "请选择可保存的贴纸类型。")
     data = body.get("data")
-    if body.get("kind") != "sign" or not isinstance(data, str) or not data.startswith("data:image/png;base64,"):
-        raise StickerError(400, "请提交一张 PNG 招牌贴纸。")
+    if not isinstance(data, str) or not data.startswith("data:image/png;base64,"):
+        raise StickerError(400, "请提交一张 PNG 贴纸。")
     try:
-        return save(name, decode_base64(data.partition(",")[2], MAX_PNG), (146, 45))
+        return save(name, decode_base64(data.partition(",")[2], MAX_PNG), frame, role=role, profile=profile,
+                    cutout=role is not None)
     except (ValueError, binascii.Error, zlib.error, struct.error) as exc:
+        if role:
+            raise StickerError(400, "请导入有可见物件和透明区域的 PNG（每边最多 2048 像素，文件不超过 4 MiB）。") from exc
         raise StickerError(400, "这张 PNG 无法读取，或超过 2048 像素。") from exc

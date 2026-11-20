@@ -50,6 +50,7 @@
         <button id="mode-puzzle" aria-pressed="false" disabled><svg aria-hidden="true"><use href="#i-puzzle"/></svg>拼图</button>
       </nav>
       <div class="mast-actions">
+        <button id="workshop-enter" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-magic"/></svg>主题工坊</button>
         <button id="help-button" class="plain" aria-label="玩法"><svg aria-hidden="true"><use href="#i-help"/></svg><span>玩法</span></button>
         <button id="share-button" class="share" aria-label="分享这盒"><svg aria-hidden="true"><use href="#i-share"/></svg><span>分享这盒</span></button>
       </div>
@@ -76,9 +77,13 @@
           <div id="toast" class="toast" role="status" hidden></div>
         </div>
         <div id="market-ledger" hidden>
-          <div class="market-tally"><svg aria-hidden="true"><use href="#i-lantern"/></svg><span>本轮成交</span><strong id="market-sales">0</strong><span>单</span></div>
+          <div class="market-tally"><svg aria-hidden="true"><use href="#i-lantern"/></svg><span id="market-tally-label">本轮成交</span><strong id="market-sales">0</strong><span id="market-unit">单</span></div>
           <p id="market-status" role="status" aria-live="polite"></p>
           <button id="market-reopen" type="button">再逛一轮</button>
+          <div id="market-discoveries" aria-label="这套贴纸的两种互动" hidden>
+            <span>已发现 <b id="market-found">0 / 2</b></span>
+            <span id="market-step-away"></span><span id="market-step-stay"></span>
+          </div>
         </div>
         <div class="board-tools">
           <div class="edit-actions">

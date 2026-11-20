@@ -21,6 +21,8 @@
   let stallTimer;
   let keyboardPoint = {x: .5, y: .5};
   let ready = false;
+  let settleStartup;
+  const startup = new Promise(resolve => { settleStartup = resolve; });
   let giftWork = null;
   let giftReference = "";
   let giftRequest = 0;
@@ -112,7 +114,7 @@
     const data = typeof json === "string" ? JSON.parse(json) : json;
     const last = state;
     const levelChanged = !last || last.levelId !== data.levelId || last.mode !== data.mode || last.title !== data.title ||
-      last.marketMode !== data.marketMode || last.marketKit?.[0] !== data.marketKit?.[0];
+      last.marketMode !== data.marketMode || last.marketKit?.join(".") !== data.marketKit?.join(".");
     state = data;
     if (levelChanged || (last && data.placed.length < last.placed.length)) {
       clearTimeout(toastTimer);
@@ -124,11 +126,11 @@
       const heading = data.marketMode ? (data.marketTheme === "一个热闹的夜市" ? "灯火夜市" : data.marketTheme) :
         isEditing() ? (second ? "广场午后" : "我的街角") : data.title;
       get("level-title").textContent = heading;
-      get("box-number").textContent = data.marketMode ? "夜市造景" : isEditing() ? "自由造景" : isGift() ? "朋友的贴纸盒" : "第 " + (second ? 2 : 1) + " 盒 / 共 2 盒";
+      get("box-number").textContent = data.marketMode ? "互动主题盒" : isEditing() ? "自由造景" : isGift() ? "朋友的贴纸盒" : "第 " + (second ? 2 : 1) + " 盒 / 共 2 盒";
       document.title = heading + " · 小镇贴纸簿";
       get("next-level").textContent = isGift() ? "做一盒回礼" : second ? "回到第一盒" : "打开下一盒";
       document.body.dataset.mode = data.mode || "puzzle";
-      document.body.classList.toggle("night-market",!!data.marketMode);
+      document.body.classList.toggle("night-market",!!data.marketMode && (!data.marketProfile || data.marketProfile === "market"));
       updatePreview(data.levelId);
       if (isGift() && giftReference) get("reference-thumb").src = giftReference;
       if (last && !isGift()) {
@@ -194,8 +196,8 @@
       data.complete ? "全部贴好了。保存这张明信片，或送出一盒自己的小镇。" :
       selected ? "选中了「" + selected.name + "」，拖到轮廓上或点一下对应位置。" : "从贴纸盘选一张，贴到场景中对应的位置。";
     if (data.marketMode) get("instruction").textContent = selected
-      ? (data.placed.includes(data.selected) ? "拖动「" + selected.name + "」调整夜市的摆法。" : "点夜市的空地，放下「" + selected.name + "」。")
-      : "把客人、摊位和桌椅分别摆好，看看客人往哪儿走。";
+      ? (data.placed.includes(data.selected) ? "拖动「" + selected.name + "」换个位置。" : "点场景中的空地，放下「" + selected.name + "」。")
+      : "从贴纸盘挑一张，或轻点场上的角色，看他去哪里。";
     get("finish-title").textContent = isGift() ? "礼物拼好了" : "这一盒贴好了";
     get("finish-copy").textContent = isGift() ? "把朋友为你布置的小镇，收进一张明信片。" : "把刚拼好的小镇收成一张明信片吧。";
     const saved = get("save-status");
@@ -211,22 +213,27 @@
   }
 
   window.townUI = {
+    async whenReady() { const error = ready ? "" : await startup; if (error) throw Error(error); },
     ready(json) {
       sync(json);
       ready = true;
+      settleStartup("");
       clearTimeout(stallTimer);
       get("load-layer").hidden = true;
       if (/^#gift(?:=|$)/.test(initialURL.hash)) openGift(initialURL.hash);
-      else if (initialURL.searchParams.has("market")) enterMarket(initialURL.searchParams.get("market") === "sample");
+      else if (initialURL.searchParams.has("market")) {
+        const target = initialURL.searchParams.get("market");
+        enterMarket(target === "seaside" || target === "books" ? target : target === "sample");
+      }
       else if (initialURL.searchParams.get("garden") === "1" || (!requested && !initialURL.searchParams.has("edit"))) action("mode", "garden");
       else if (initialURL.searchParams.get("edit") === "1") action("mode", "edit");
       else if (requested && !levels.includes(requested)) showNotice("没有找到这盒贴纸，已打开周末小镇。");
     },
     sync,
     actorTap(id) { if (!window.TownNightMarket.tap(id)) window.TownGarden.tap(id); },
-    openMarket(rows, theme) { return window.TownNightMarket.fromRows(rows,theme); },
+    openMarket(rows, theme, profile) { return window.TownNightMarket.fromRows(rows,theme,profile); },
     marketSale(customer,stall) { window.TownNightMarket.sale(customer,stall); },
-    marketDone(customer,stall) { window.TownNightMarket.done(customer,stall); },
+    marketDone(customer,stall,completed) { window.TownNightMarket.done(customer,stall,completed); },
     notice: showNotice,
     giftReady(json) { shareWork(JSON.parse(json)); },
     postcardReady(json) { savePostcard(JSON.parse(json)); },
@@ -257,11 +264,11 @@
     if (marketLoading || state?.marketMode) return;
     marketLoading = true;
     const button = get("market-enter"); button.disabled = true; button.setAttribute("aria-busy","true");
-    showNotice("正在打开夜市贴纸盒…");
+    showNotice("正在打开互动贴纸盒…");
     try {
       await window.TownNightMarket.launch(sampleOnly);
       if (state?.marketMode) get("toast").hidden = true;
-    } catch (err) { showError("夜市暂未打开",err); }
+    } catch (err) { showError("主题盒暂未打开",err); }
     finally { marketLoading = false; button.disabled = false; button.removeAttribute("aria-busy"); }
   }
   get("market-enter").onclick = () => enterMarket();
@@ -275,10 +282,13 @@
   get("wrap").onclick = nameGift;
   get("next-level").onclick = () => isGift() ? action("mode", "edit") :
     action("level", state.levelId === levels[0] ? levels[1] : levels[0]);
-  get("custom-button").onclick = () => {
-    if (window.stickerStudio?.open) window.stickerStudio.open();
+  function openWorkshop(panel) {
+    if (window.stickerStudio?.open) window.stickerStudio.open(panel);
     else showNotice("定制工具未能加载，请刷新页面重试。");
-  };
+  }
+  get("workshop-enter").onclick = () => openWorkshop("paint-panel");
+  get("custom-button").onclick = () => openWorkshop("street-panel");
+  if (initialURL.searchParams.get("workshop") === "1" && !initialURL.hash) openWorkshop("paint-panel");
 
   function dialogButton(text, callback, primary = false) {
     const button = document.createElement("button");
@@ -302,7 +312,7 @@
   }
   function confirmReset() {
     if (state?.marketMode) {
-      openDialog("从空场摆夜市？", [paragraph("场上的 " + state.placed.length + " 件贴纸会一起收起。可以点「撤销」恢复原来的摆法。")], [
+      openDialog("收起场上的贴纸？", [paragraph("场上的 " + state.placed.length + " 件贴纸会一起收起。可以点「撤销」恢复原来的摆法。")], [
         dialogButton("继续逛", () => modal.close()), dialogButton("收起全部", () => {
           modal.close(); action("reset"); action("select","kit:" + state.marketKit[0]);
         }, true),
@@ -327,7 +337,7 @@
   });
   get("help-button").onclick = () => {
     const steps = document.createElement("ol");
-    const tips = state?.marketMode ? ["把摊位、桌、凳和客人分别摆在石板上。同一种贴纸可以取好几张。","客人会走到附近最近的摊位，下单后接过餐点。摊边有成套的桌椅就去落座，桌椅挪远后会把餐点带走。","轻点客人可以再招呼他一次。「再逛一轮」会请附近的客人依次出发。"] :
+    const tips = state?.marketMode ? ["把角色放在店铺或工作台附近，看他走过去。贴纸盘里同一件可以多次取用。","把桌椅配在场景里，角色互动后会找地方坐下。把座位挪远，看看结尾有什么变化。","轻点场上的角色，可以再看一次互动。也可以再开一轮，请附近的角色依次出发。"] :
       isEditing() ? ["选一张贴纸，再点街景把它放下来。每件都能挪走，也可以放好几件一样的。", "把角色和物件摆近一点。遇见过的小事会记进「街角手记」；轻点凑在一起的角色还能再看一次。", "喜欢现在的摆法，就存一张明信片，或把这片街景封成礼物让朋友重拼。"] :
       ["从贴纸盘挑一张。带角标的轮廓就是它的位置。", "把贴纸拖进去，或先选贴纸再点对应位置。", "用双指或加减按钮放大；放大后可以拖动画布。"];
     for (const text of tips) {
@@ -345,7 +355,7 @@
       actions.push(letter);
     }
     actions.push(dialogButton("知道了", () => modal.close(), true));
-    openDialog(state?.marketMode ? "夜市怎样开张" : isEditing() ? "怎样逛街角" : "怎样贴贴纸", [steps, paragraph("键盘也能玩。用 Tab 选中贴纸，按回车进入画布，方向键移动落点，Shift 加大步幅，回车放置。")],
+    openDialog(state?.marketMode ? "怎样让场景动起来" : isEditing() ? "怎样逛街角" : "怎样贴贴纸", [steps, paragraph("键盘也能玩。用 Tab 选中贴纸，按回车进入画布，方向键移动落点，Shift 加大步幅，回车放置。")],
       actions);
   };
   get("reference-button").onclick = () => {
@@ -553,6 +563,7 @@
   canvas.addEventListener("pointerdown", () => { get("keyboard-marker").hidden = true; });
 
   function failed(message) {
+    settleStartup(message);
     clearTimeout(stallTimer);
     const layer = get("load-layer");
     layer.hidden = false; layer.classList.add("failed");

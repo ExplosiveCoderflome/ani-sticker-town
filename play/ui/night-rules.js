@@ -43,6 +43,8 @@
       const participants = [customer, stall, ...(seating || [])];
       const visit = {id: "market-buy", customerId: customer.id, stallId: stall.id,
         actors: participants.map(slot => ({asset: slot.asset, x: slot.anchor[0], y: slot.anchor[1], z: slot.z}))};
+      const profile = stall.profile || state.marketProfile;
+      if (profile) visit.profile = profile;
       if (seating) [visit.tableId, visit.chairId] = seating.map(slot => slot.id);
       visits.push(visit);
     }
