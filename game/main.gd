@@ -4,6 +4,7 @@ const PAPER := Color("#f4f0df")
 const INK := Color("#61765b")
 const SAVE_PREFIX := "town.stickers.v1."
 const MAX_ZOOM := 2.5
+const STORY_TITLES := {"seaside":"海风夜市", "books":"雨天书屋", "festival":"同街两桩心愿"}
 const Workshop = preload("res://workshop.gd")
 const Encounter = preload("res://encounter.gd")
 const NightMarket = preload("res://night_market.gd")
@@ -17,6 +18,9 @@ var market_mode := false
 var market_kit: Array = []
 var market_theme := ""
 var market_profile := "market"
+var last_market: Dictionary = {}
+var story_chapter := ""
+var story_assets: Array = []
 var market_backdrop := NightMarket.new()
 var mode := "puzzle"
 var progress_key := ""
@@ -34,6 +38,8 @@ var slots: Array = []
 var by_id: Dictionary = {}
 var textures: Dictionary = {}
 var masks: Dictionary = {}
+var motion_pairs: Dictionary = {}
+var motion_sets: Dictionary = {}
 var ground: Texture2D
 var placed: Array = []
 var selected := ""
@@ -92,6 +98,8 @@ func _open_level(id: String) -> void:
 	mode = "puzzle"
 	garden_mode = false
 	market_mode = false
+	story_chapter = ""
+	story_assets = []
 	pending_draft = {}
 	level = levels[0]
 	for item in levels:
@@ -179,10 +187,12 @@ func _level_for(base: String) -> Dictionary:
 			return entry
 	return levels[0]
 
-func _open_edit(base: String, garden := false, kit: Array = [], theme := "", profile := "market") -> void:
+func _open_edit(base: String, garden := false, kit: Array = [], theme := "", profile := "market", chapter := "", assets: Array = []) -> void:
 	mode = "edit"
 	garden_mode = garden
 	market_mode = not kit.is_empty()
+	story_chapter = chapter
+	story_assets = assets.duplicate()
 	level = _level_for(base)
 	progress_key = "draft.v2." + str(level.id)
 	if market_mode:
@@ -190,12 +200,16 @@ func _open_edit(base: String, garden := false, kit: Array = [], theme := "", pro
 		market_theme = theme
 		market_profile = profile
 		progress_key = "market.v2." + ".".join(PackedStringArray(kit))
+		if chapter.is_empty():
+			last_market = {"ids":market_kit, "theme":theme, "profile":profile}
+		else:
+			progress_key = "story.v1." + chapter
 	selected = ""
 	saved = true
 	_reset_view()
 	var empty := workshop.from_slots(level.id, theme.left(32) if market_mode else "我的小镇", [])
 	var raw := _read_saved(progress_key)
-	if raw.is_empty() and market_mode and profile == "market":
+	if raw.is_empty() and market_mode and profile == "market" and chapter.is_empty():
 		raw = _read_saved("market.v1." + str(kit[0]))
 	var draft := empty if raw.is_empty() else workshop.normalize(JSON.parse_string(raw), true)
 	var seed := garden and raw.is_empty() and str(level.id) == "weekend-town-v1"
@@ -205,6 +219,11 @@ func _open_edit(base: String, garden := false, kit: Array = [], theme := "", pro
 		for data in initial:
 			draft.items.append({"asset":data[0],"x":data[1],"y":data[2],"z":draft.items.size()})
 		selected = "kit:black-cat"
+	elif not chapter.is_empty() and (raw.is_empty() or draft.is_empty()):
+		# Recover a damaged copy in memory. Only a player edit replaces the old bytes.
+		seed = raw.is_empty()
+		draft = empty
+		_append_layout(draft, _chapter_layout(chapter, story_assets))
 	elif market_mode and raw.is_empty():
 		seed = true
 		var first := [["paving",432,790],["bookshop",545,450],["tree",102,584],["lamp",737,557],
@@ -215,32 +234,78 @@ func _open_edit(base: String, garden := false, kit: Array = [], theme := "", pro
 				[kit[1],485,594], [kit[2],525,620]]
 			if profile == "market": first.insert(2, ["lamp",597,495])
 			selected = "kit:" + str(kit[3])
-		for data in first:
-			var p := workshop.clamp_anchor(Vector2(data[1],data[2]),workshop.catalog[data[0]].size)
-			draft.items.append({"asset":data[0],"x":p.x,"y":p.y,"z":draft.items.size()})
+		_append_layout(draft, first)
 	if draft.is_empty():
 		draft = empty
 	draft_title = draft.title
 	var missing := workshop.missing(draft)
 	pending_draft = draft if not missing.is_empty() else {}
 	workshop.restore(empty if not missing.is_empty() else draft)
+	if not chapter.is_empty() and missing.is_empty():
+		var focus: String = str(story_assets[2] if chapter == "books" else story_assets[3])
+		if chapter == "seaside":
+			if not draft.items.any(func(item): return item.asset == focus): selected = "kit:" + focus
+		elif seed:
+			for record in workshop.records:
+				if record.asset == focus:
+					selected = record.id
+					break
 	_sync_edit(seed)
 	if not missing.is_empty():
 		_request_missing.call_deferred()
+
+func _append_layout(draft: Dictionary, layout: Array) -> void:
+	for data in layout:
+		var p := workshop.clamp_anchor(Vector2(data[1], data[2]), workshop.catalog[data[0]].size)
+		draft.items.append({"asset":data[0], "x":p.x, "y":p.y, "z":draft.items.size()})
+
+func _chapter_layout(chapter: String, assets: Array) -> Array:
+	match chapter:
+		"seaside":
+			return [["paving",432,790], ["tree",147,525], ["lamp",604,505], [assets[0],365,515],
+				[assets[1],481,600], [assets[2],532,630]]
+		"books":
+			return [["paving",432,790], ["tree",137,535], ["flower-cart",171,642], [assets[0],350,510],
+				[assets[1],478,591], [assets[2],628,682], [assets[3],685,555]]
+		"festival":
+			return [["paving",432,790], ["tree",99,494], ["lamp",426,487], [assets[0],245,515],
+				[assets[4],620,505], ["flower-cart",132,627], [assets[5],330,610], [assets[6],645,649],
+				[assets[3],385,750], [assets[7],478,760]]
+	return []
+
+func _valid_kit(ids: Variant, expected_profile := "") -> bool:
+	if not ids is Array or ids.size() != workshop.MARKET_ROLES.size(): return false
+	for i in ids.size():
+		if not ids[i] is String or not workshop.is_generated(ids[i]) or not workshop.catalog.has(ids[i]): return false
+		var entry: Dictionary = workshop.catalog[ids[i]]
+		if entry.role != workshop.MARKET_ROLES[i]: return false
+		if not expected_profile.is_empty() and entry.profile != expected_profile: return false
+	return true
+
+func _open_story(payload: Variant) -> bool:
+	if not payload is Dictionary or not payload.get("chapter") is String or not payload.get("kits") is Array: return false
+	var chapter: String = payload.chapter
+	if not STORY_TITLES.has(chapter): return false
+	var kits: Array = payload.kits
+	var profiles := ["market", "books"] if chapter == "festival" else ["books" if chapter == "books" else "market"]
+	if kits.size() != profiles.size(): return false
+	var assets: Array = []
+	for i in kits.size():
+		if not _valid_kit(kits[i], profiles[i]): return false
+		assets.append_array(kits[i])
+	if story_chapter != chapter or story_assets != assets:
+		_open_edit("weekend-town-v1", false, kits[0], STORY_TITLES[chapter], profiles[0], chapter, assets)
+	return true
 
 func _open_market(payload: Variant) -> bool:
 	if not payload is Dictionary or not payload.get("theme") is String or not payload.get("ids") is Array:
 		return false
 	var ids: Array = payload.ids
 	var label: String = payload.theme.strip_edges()
-	if label.is_empty() or label.length()>80 or ids.size()!=workshop.MARKET_ROLES.size(): return false
-	for i in ids.size():
-		if not ids[i] is String or not workshop.is_generated(ids[i]) or not workshop.catalog.has(ids[i]):
-			return false
-		if workshop.catalog[ids[i]].role != workshop.MARKET_ROLES[i]: return false
+	if label.is_empty() or label.length()>80 or not _valid_kit(ids): return false
 	var profile: String = str(payload.get("profile", "market"))
 	if not workshop.PROFILES.has(profile): return false
-	if not market_mode or market_kit != ids or market_profile != profile:
+	if not market_mode or not story_chapter.is_empty() or market_kit != ids or market_profile != profile:
 		_open_edit("weekend-town-v1",false,ids,label,profile)
 	return true
 
@@ -270,6 +335,8 @@ func _open_gift(work: Dictionary) -> bool:
 	mode = "gift"
 	garden_mode = false
 	market_mode = false
+	story_chapter = ""
+	story_assets = []
 	pending_draft = {}
 	level = {"id":work.base, "title":work.title, "ambience":work.get("ambience","")}
 	progress_key = "gift.v1." + JSON.stringify(work).sha256_text()
@@ -353,6 +420,31 @@ func _register_asset(input) -> bool:
 		_sync_edit()
 	return true
 
+func _register_motion(input: Variant) -> bool:
+	if not input is Dictionary or not input.get("id") is String or not input.get("data") is String: return false
+	var actor: String = input.id
+	if not workshop.is_generated(actor) or workshop.catalog.get(actor, {}).get("role", "") != "customer": return false
+	var targets = input.get("targets")
+	if not targets is Array or targets.is_empty() or targets.size() > 3: return false
+	for target in targets:
+		if not target is String or target == actor or not workshop.is_generated(target) or targets.count(target) != 1:
+			return false
+	var frames := Encounter.VisitorMotion.frames_from_png(input.data)
+	if not frames: return false
+	if not motion_pairs.has(actor):
+		motion_pairs[actor] = {}
+		motion_sets[actor] = {}
+	motion_sets[actor][targets[0]] = targets.duplicate()
+	for target in targets:
+		motion_pairs[actor][target] = frames
+	return true
+
+func _motion_bindings() -> Dictionary:
+	var bindings := {}
+	for actor in motion_pairs:
+		bindings[actor] = motion_pairs[actor].keys()
+	return bindings
+
 func _viewport_size() -> Vector2:
 	return get_viewport_rect().size
 
@@ -415,7 +507,7 @@ func _draw() -> void:
 		var drawing := slots
 		var performing := not encounter.kind.is_empty()
 		var board_transform := Transform2D(0,Vector2.ONE*_scale_value(),0,_origin())
-		if performing and not encounter.reduced:
+		if performing and (not encounter.reduced or encounter.visitor_motion):
 			drawing = slots.duplicate()
 			drawing.sort_custom(func(a,b): return encounter.depth(a) < encounter.depth(b))
 		for slot in drawing:
@@ -426,7 +518,9 @@ func _draw() -> void:
 				tile.position = Vector2(-tile.size.x*.5,-tile.size.y)
 			if dragging_sticker and drag_id == slot.id:
 				tile.position = drag_anchor - Vector2(tile.size.x / 2, tile.size.y)
-			if textures.has(slot.asset):
+			if posed and encounter.visitor_motion and slot.role == "customer":
+				encounter.visitor_motion.draw(self, encounter.time * encounter.visitor_motion.duration)
+			elif textures.has(slot.asset):
 				draw_texture_rect(textures[slot.asset], tile, false, _sticker_tint(slot, night))
 				if posed: encounter.carried(self,slot)
 			if not posed and (selected == slot.id or (dragging_sticker and drag_id == slot.id)):
@@ -654,11 +748,14 @@ func _on_web_action(args: Array) -> void:
 			_stop_encounter()
 			return
 		"mode":
-			if payload == "market" and not market_mode and not market_kit.is_empty():
-				_open_market({"ids":market_kit,"theme":market_theme,"profile":market_profile})
+			if payload == "market" and (not market_mode or not story_chapter.is_empty()):
+				if not last_market.is_empty(): _open_market(last_market)
+				elif not story_chapter.is_empty():
+					var name := "雨天的街角书屋" if market_profile == "books" else "海风夜市"
+					_open_market({"ids":market_kit, "theme":name, "profile":market_profile})
 			elif payload == "garden" and (mode != "edit" or not garden_mode):
 				_open_edit(level.id, true)
-			elif payload == "edit" and mode != "edit":
+			elif payload == "edit" and (mode != "edit" or not story_chapter.is_empty()):
 				_open_edit(level.id)
 			elif payload == "puzzle" and mode != "puzzle":
 				_open_level(level.id)
@@ -668,6 +765,10 @@ func _on_web_action(args: Array) -> void:
 		"marketOpen":
 			if payload.length()>2500 or not _open_market(JSON.parse_string(payload)):
 				_notice("夜市的摊位、桌椅或顾客还没备齐，请重新打开这套素材。")
+				return
+		"storyOpen":
+			if payload.length() > 2500 or not _open_story(JSON.parse_string(payload)):
+				_notice("这一章的场景贴纸还没备齐，请重新打开委托。")
 				return
 		"gift":
 			if payload.length() > 16000 or not _open_gift(workshop.normalize(JSON.parse_string(payload))):
@@ -686,6 +787,10 @@ func _on_web_action(args: Array) -> void:
 		"registerAsset":
 			if payload.length() > 8100000 or not _register_asset(JSON.parse_string(payload)):
 				_notice("这张定制贴纸未能载入。")
+				return
+		"registerMotion":
+			if payload.length() > 8100000 or not _register_motion(JSON.parse_string(payload)):
+				_notice("动作图集未能载入，可继续使用静态贴纸。")
 				return
 		"remove":
 			if mode == "edit" and pending_draft.is_empty() and workshop.remove(selected if payload.is_empty() else payload):
@@ -754,6 +859,7 @@ func _publish(initial := false) -> void:
 	var state := JSON.stringify({"mode":mode, "levelId":level.id, "title":draft_title if mode == "edit" else level.title,
 		"marketMode":market_mode, "marketKit":market_kit if market_mode else [], "marketTheme":market_theme if market_mode else "",
 		"marketProfile":market_profile if market_mode else "",
+		"storyChapter":story_chapter, "storyAssets":story_assets, "motionBindings":_motion_bindings(), "motionSets":motion_sets,
 		"slots":slots, "catalog":workshop.catalog.values(), "total":slots.size(), "placed":placed, "selected":selected,
 		"canUndo":not workshop.history.is_empty() if mode == "edit" else not placed.is_empty(),
 		"complete":mode != "edit" and not slots.is_empty() and placed.size() == slots.size(),
@@ -773,7 +879,7 @@ func _notice(message: String) -> void:
 func _play_encounter(payload: Variant) -> void:
 	var reduced := bool(web_window.matchMedia("(prefers-reduced-motion: reduce)").matches) if web_window else false
 	var next := Encounter.new()
-	if not next.start(payload,slots,reduced):
+	if not next.start(payload,slots,reduced,motion_pairs):
 		return
 	_stop_encounter()
 	encounter = next
@@ -790,7 +896,7 @@ func _pose_encounter(progress: float, performance: RefCounted) -> void:
 	if encounter != performance: return
 	encounter.time = progress
 	queue_redraw()
-	if encounter.kind == "market-buy" and not encounter.sale_emitted and progress >= encounter.SALE_TIME:
+	if encounter.kind == "market-buy" and not encounter.sale_emitted and progress >= encounter.sale_time():
 		encounter.sale_emitted = true
 		if web_window and web_window.townUI and web_window.townUI.marketSale:
 			web_window.townUI.marketSale(str(encounter.actors.customer.id),str(encounter.actors.stall.id))

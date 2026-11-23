@@ -1,5 +1,7 @@
 extends RefCounted
 
+const VisitorMotion = preload("res://visitor_motion.gd")
+
 const RECIPES := {
 	"cat-bench": ["black-cat", "bench"],
 	"dog-song": ["dog", "musician"],
@@ -15,15 +17,21 @@ var reduced := false
 var time := 0.0
 var sale_emitted := false
 var profile := "market"
+var visitor_motion: VisitorMotion
 
-func start(payload: Variant, records: Array, reduce: bool) -> bool:
+func start(payload: Variant, records: Array, reduce: bool, motion_pairs: Dictionary = {}) -> bool:
 	if not payload is Dictionary or not payload.get("id") is String:
 		return false
 	var source = payload.get("actors")
 	if not source is Array: return false
 	var market: bool = payload.id == "market-buy"
+	var target_role: String = str(payload.get("targetRole", "stall"))
+	if market and target_role not in ["stall", "table", "chair"]: return false
+	var furniture := market and target_role != "stall"
+	if furniture and source.size() != 2: return false
 	var required: Array = ["customer","stall"] if market else RECIPES.get(payload.id,[])
 	if market and source.size()==4: required.append_array(["table","chair"])
+	elif market and source.size()==3: required.append("chair")
 	if required.is_empty() or source.size() != required.size():
 		return false
 	var found := {}
@@ -37,16 +45,34 @@ func start(payload: Variant, records: Array, reduce: bool) -> bool:
 		for s in records:
 			if s.asset == actor.asset and float(s.z) == float(actor.z) and absf(s.anchor[0]-actor.x) <= 0.51 and absf(s.anchor[1]-actor.y) <= 0.51:
 				var key: String = str(s.get("role","")) if market else str(s.asset)
+				if furniture:
+					if key == target_role: key = "stall"
+					elif key != "customer": return false
 				if not required.has(key) or found.has(key): return false
 				found[key] = s
 				break
 	if found.size() != required.size():
 		return false
+	var custom_frames: SpriteFrames
+	if market:
+		if payload.has("customerId") and payload.customerId != found.customer.id: return false
+		if payload.has("stallId") and payload.stallId != found.stall.id: return false
+		custom_frames = motion_pairs.get(found.customer.asset, {}).get(found.stall.asset)
+		if furniture and not custom_frames: return false
+	var squid_visit: bool = market and found.customer.asset == VisitorMotion.VISITOR and found.stall.asset == VisitorMotion.SQUID_STALL
+	var book_visit: bool = market and found.customer.asset == VisitorMotion.READER and found.stall.asset == VisitorMotion.BOOK_KIOSK
+	if market and source.size() == 3 and not squid_visit:
+		if not custom_frames or not motion_pairs[found.customer.asset].has(found.chair.asset): return false
 	kind = payload.id
 	actors = found
 	if market:
 		profile = str(found.stall.get("profile", ""))
 		if profile.is_empty(): profile = str(payload.get("profile", "market"))
+	visitor_motion = null
+	if squid_visit or book_visit or custom_frames:
+		if not custom_frames: profile = "books" if book_visit else "market"
+		visitor_motion = VisitorMotion.new()
+		visitor_motion.configure(actors, market_stop(), reduce, book_visit, custom_frames)
 	reduced = reduce
 	time = 0.0
 	sale_emitted = false
@@ -55,10 +81,15 @@ func start(payload: Variant, records: Array, reduce: bool) -> bool:
 func clear() -> void:
 	kind = ""
 	actors = {}
+	visitor_motion = null
 	time = 0.0
 
 func duration() -> float:
+	if visitor_motion: return visitor_motion.duration
 	return 0.88 if reduced else float(DURATIONS[kind])
+
+func sale_time() -> float:
+	return visitor_motion.pickup / visitor_motion.duration if visitor_motion else SALE_TIME
 
 func anchor(asset: String) -> Vector2:
 	var data: Array = actors[asset].anchor
@@ -69,6 +100,7 @@ func size_of(asset: String) -> Vector2:
 	return Vector2(data[0], data[1])
 
 func owns(slot: Dictionary) -> bool:
+	if kind == "market-buy" and actors.stall.id == slot.id: return true
 	var key: String = str(slot.get("role","")) if kind=="market-buy" else str(slot.asset)
 	return actors.has(key) and actors[key].id == slot.id
 
@@ -97,6 +129,8 @@ func pose(slot: Dictionary) -> Transform2D:
 	var pos := Vector2(slot.anchor[0],slot.anchor[1])
 	var stretch := Vector2.ONE
 	var angle := 0.0
+	if visitor_motion and owns(slot) and slot.role == "customer":
+		return visitor_motion.pose(time * visitor_motion.duration)
 	if not reduced and kind == "market-buy" and owns(slot):
 		if slot.role == "customer":
 			pos = customer_position()
@@ -153,9 +187,15 @@ func pose(slot: Dictionary) -> Transform2D:
 
 func depth(slot: Dictionary) -> float:
 	var z := float(slot.z)
-	if reduced or not owns(slot):
+	if (reduced and not visitor_motion) or not owns(slot):
 		return z
+	if visitor_motion and slot.role == "table" and actors.has("table") and actors.has("chair") and anchor("table").y > anchor("chair").y:
+		var t := time * visitor_motion.duration
+		if reduced: return maxf(z, float(actors.chair.z) + 0.60) if t >= visitor_motion.pickup else z
+		var seated := smoothstep(visitor_motion.leave_counter, visitor_motion.sit_down, t) * (1.0 - smoothstep(visitor_motion.stand_up, visitor_motion.duration, t))
+		return lerpf(z, maxf(z, float(actors.chair.z) + 0.60), seated)
 	if kind == "market-buy" and slot.role == "customer":
+		if visitor_motion: return visitor_motion.guest_depth(z, actors, time * visitor_motion.duration)
 		var stall_z := float(actors.stall.z)+.4
 		var leave := .47 if actors.has("chair") else .61
 		if time<leave: return lerpf(z,stall_z,smoothstep(0,1,phase(.03,.29)))
@@ -213,7 +253,7 @@ func handover_item(board: Node2D, p: Vector2, seated := false) -> void:
 	var ink := Color("#504b3e")
 	match profile:
 		"market":
-			if "鱿鱼" in str(actors.stall.name):
+			if visitor_motion or "鱿鱼" in str(actors.stall.name):
 				var wood := Color("#d9b57e")
 				board.draw_line(p+Vector2(-4,6), p+Vector2(5,-9), wood, 2.1, true)
 				var tip := p+Vector2(2,-4)
@@ -252,6 +292,7 @@ func handover_item(board: Node2D, p: Vector2, seated := false) -> void:
 			bowl(board,p)
 
 func carried(board: Node2D, slot: Dictionary) -> void:
+	if visitor_motion: return # The held object is already inked into these frames.
 	if kind != "market-buy" or reduced or slot.get("role") != "customer" or not owns(slot) or time < .44 or time>.91: return
 	var size := size_of("customer")
 	var p := Vector2(-size.x*.22,-size.y*.46)
@@ -261,12 +302,37 @@ func carried(board: Node2D, slot: Dictionary) -> void:
 	handover_item(board,p,seated)
 
 func market_props(board: Node2D) -> void:
+	if visitor_motion and visitor_motion.custom: return # The workshop artist supplies all held props in the atlas.
 	var stall := anchor("stall")
 	var shop := size_of("stall")
 	var side := -1.0 if market_stop().x<stall.x else 1.0
 	var counter := stall+Vector2(side*shop.x*.22,-shop.y*.35)
+	if visitor_motion and profile == "books":
+		# The reader presents the book she carries. Stamp the loan on the counter.
+		var now := time * visitor_motion.duration
+		if now >= visitor_motion.arrival and now < visitor_motion.leave_counter + 0.28:
+			if visitor_motion.book_is_on_counter(now):
+				var cover := PackedVector2Array([counter+Vector2(-6,-2), counter+Vector2(3,-5),
+					counter+Vector2(7,1), counter+Vector2(-2,4)])
+				board.draw_colored_polygon(cover, Color("#38574a"))
+				board.draw_line(cover[2],cover[3],Color("#d9c38b"),1.3,true)
+			var lift := 0.0 if reduced else 7.0 * smoothstep(0, 0.22, absf(now - visitor_motion.pickup))
+			var stamp := counter - Vector2(0, lift)
+			board.draw_circle(stamp - Vector2(0, 6), 3.3, Color("#875a38"), true, -1, true)
+			board.draw_rect(Rect2(stamp - Vector2(5, 4), Vector2(10, 3.5)), Color("#a43b2e"))
+			if now >= visitor_motion.pickup:
+				board.draw_line(counter - Vector2(4,0), counter + Vector2(4,0), Color("#ac5240"), 1.6, true)
+		return
 	if reduced:
-		handover_item(board,counter)
+		if not visitor_motion or time < sale_time(): handover_item(board,counter)
+		return
+	if visitor_motion:
+		var now := time * visitor_motion.duration
+		# End the transfer as the second extended hand frame gives way to the held skewer.
+		if now >= visitor_motion.arrival and now < visitor_motion.pickup:
+			var f := smoothstep(visitor_motion.arrival, visitor_motion.pickup, now)
+			var palm := visitor_motion.palm_at_counter()
+			handover_item(board, counter.lerp(palm,f) - Vector2(0, sin(PI*f)*4))
 		return
 	var guest := customer_position()
 	var hand := guest+Vector2(-side*size_of("customer").x*.25,-size_of("customer").y*.43)

@@ -38,7 +38,8 @@
 .atelier-section-title{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:18px 0 8px}
 .atelier-section-title h3,#library-panel h3{font:700 18px/1.35 var(--serif)}
 .atelier-section-title>span{font-size:12px;color:#5e6656}
-#atelier-samples{display:grid;grid-template-columns:1.12fr 1fr 1fr;gap:9px}
+#atelier-samples{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.sample-box.watercolor-studio{--surface:#e5eade;--rim:#b8c4aa}
 .sample-box{--surface:#e6e8d6;--rim:#c5c8b3;position:relative;display:flex;flex-direction:column;align-items:flex-start;min-width:0;background:var(--surface);border:1px solid var(--rim);border-radius:8px;text-align:left;padding:0 10px 11px;overflow:hidden}
 .sample-box.seaside-market{--surface:#dfebea;--rim:#bdceca}
 .sample-box.night-market{--surface:#f1e4cd;--rim:#d7c3a1}
@@ -78,6 +79,7 @@
 #atelier-recent button{display:flex;align-items:center;gap:8px;text-align:left;min-width:0;border:1px solid var(--line);border-radius:6px;background:#f3f1e6;padding:4px 7px}
 #atelier-recent img{width:40px;height:42px;object-fit:contain;flex-shrink:0}
 #atelier-recent span{overflow-wrap:anywhere;font-size:13px}
+#atelier-recent small{display:block;color:var(--muted);font-weight:400}
 #atelier-collection:not(:empty){margin-top:9px}
 #studio-connect{margin:10px 0 0;color:#53644e;font-size:12px}#studio-connect summary{width:fit-content;cursor:pointer}#studio-connect summary:focus-visible{outline:2px solid #9b5a30;outline-offset:3px}
 #sticker-studio #studio-status:not(:empty){position:sticky;bottom:0;margin-top:10px;padding:6px 9px;border-radius:4px;background:#f5edda;color:#66472e}
@@ -85,3 +87,20 @@
 @media(max-width:550px){#sticker-studio{max-height:calc(100dvh - 14px)}#atelier-samples{gap:5px;grid-template-columns:repeat(3,minmax(0,1fr))}.sample-box{padding:0 5px 8px}.sample-art{height:71px}.sample-box strong{font-size:13px;line-height:1.4;padding-right:0}.sample-box small{display:none}.sample-open{right:4px;top:4px;font-size:11px}.atelier-compose{margin-top:15px;padding-top:12px}.atelier-section-title{margin-top:12px}.atelier-section-title>span{font-size:11px}}
 @media(max-width:460px){.mast-actions #workshop-enter svg{display:none}.mast-inner .brand>span:last-child{display:none}.mast-inner .brand-mark{display:grid}.mast-inner .mode-switch button{padding-inline:7px}}
 @media(max-width:335px){.mast-inner .mode-switch button{padding-inline:4px}.mast-actions #workshop-enter{padding-inline:4px;font-size:11px}.mast-inner .brand-mark{width:25px;height:28px}.mast-inner{padding-inline:5px}}
+#sticker-studio #motion-choice{display:flex;align-items:center;gap:8px;margin-top:10px}
+#sticker-studio #motion-choice input{width:17px;height:17px;margin:0;accent-color:var(--green)}
+#motion-choice small,.sheet-buttons small{color:var(--muted);font-weight:400;font-size:12px}
+#sheet-tools{border-top:1px solid var(--line);margin-top:14px;padding-top:11px}
+.import-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.import-heading h3{font:650 17px/1.35 var(--serif);margin:0}
+#sticker-studio .sheet-text{font:inherit;font-size:12px;min-height:32px;border:0;background:transparent;color:#405b47;padding:3px 5px;text-decoration:underline;text-underline-offset:3px}
+#motion-import{margin:8px 0}
+#sticker-studio #motion-guide{margin:4px 0 9px;font-size:12px}
+#motion-preview:not(:empty){display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+#motion-preview figure{display:grid;justify-items:center;min-width:0;margin:0;background:#e9ede4;border-radius:5px;padding:5px 2px}
+#motion-preview figcaption{font-size:12px;color:var(--ink);font-weight:500}
+.motion-frame{width:min(100%,78px);aspect-ratio:1;background-image:var(--motion-art);background-size:400% 400%;background-repeat:no-repeat;animation:workshop-frames .96s steps(1,end) infinite}
+#motion-preview.paused .motion-frame{animation:none;background-position-x:var(--preview-frame,0%)}
+@keyframes workshop-frames{0%{background-position-x:0%}25%{background-position-x:33.333333%}50%{background-position-x:66.666667%}75%{background-position-x:100%}}
+#motion-stepping{text-align:right}
+@media(max-width:550px){#atelier-samples{grid-template-columns:repeat(2,minmax(0,1fr))}.sample-art{height:70px}.sample-box strong{margin-top:0}}

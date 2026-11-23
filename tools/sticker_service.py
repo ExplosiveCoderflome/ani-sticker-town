@@ -18,6 +18,11 @@ from urllib.error import URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 import zlib
 
+if __package__:
+    from . import sticker_motion
+else:
+    import sticker_motion
+
 try:
     from PIL import Image
 except ImportError:
@@ -32,6 +37,7 @@ GENERATION_LOCK = threading.Lock()
 MARKET_DIR = Path(__file__).resolve().parents[1] / "play" / "media" / "night-market"
 BOOKSHOP_DIR = MARKET_DIR.parent / "bookshop"
 SEASIDE_DIR = MARKET_DIR.parent / "seaside-market"
+POSTBOX_ID = "gen-25bfc1d44e685cb1a2bede850ac754bb"
 MARKET_ROLES = ("stall", "table", "chair", "customer")
 INVALID_TEXT = re.compile(r"[\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069\ud800-\udfff]")
 JS_TRIM = "\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
@@ -125,6 +131,7 @@ def database():
     db.execute("""CREATE TABLE IF NOT EXISTS theme_jobs (
         request_key TEXT PRIMARY KEY, sticker_id TEXT, started REAL NOT NULL DEFAULT 0
     )""")
+    sticker_motion.schema(db)
     return db
 
 
@@ -183,8 +190,24 @@ def read_kit(root, profile):
 
 
 def get(path):
+    postbox_path = f"{PREFIX}/{POSTBOX_ID}"
+    if path in (PREFIX + "/story-keepsake", postbox_path, postbox_path + "/image.png"):
+        art = MARKET_DIR.parent / "story" / "postbox.png"
+        if not art.is_file():
+            raise StickerError(503, "礼物贴纸暂未装好，请使用完整的试玩包。")
+        if path.endswith("/image.png"):
+            return art.read_bytes()
+        with art.open("rb") as picture:
+            width, height = struct.unpack(">II", picture.read(24)[16:])
+        scale = min(76 / width, 104 / height)
+        return {"id":POSTBOX_ID, "name":"街角蓝邮筒", "width":width, "height":height,
+                "size":[round(width*scale,2),round(height*scale,2)], "role":None, "profile":None,
+                "image":postbox_path + "/image.png"}
+    motion = sticker_motion.ROUTE.fullmatch(path)
+    if motion:
+        return sticker_motion.get(*motion.groups())
     kits = {"night-market": (MARKET_DIR, "market"), "bookshop": (BOOKSHOP_DIR, "books"),
-            "seaside-market": (SEASIDE_DIR, "market")}
+            "seaside-market": (SEASIDE_DIR, "market"), "watercolor-studio": (MARKET_DIR.parent / "watercolor-studio", "studio")}
     if path == PREFIX + "/profiles":
         return {"fallback":"general", "profiles":[
             {"id":profile, "terms":list(terms), "labels":{role:role_spec(role, profile)[0] for role in MARKET_ROLES}}
@@ -197,7 +220,8 @@ def get(path):
     if path == PREFIX:
         with closing(database()) as db:
             rows = db.execute(f"SELECT {FIELDS} FROM stickers ORDER BY rowid DESC")
-            return {"ai": available(), "interactiveImport": True, "stickers": [metadata(row) for row in rows]}
+            return {"ai": available(), "interactiveImport": True, "motionAI":available(), "motionImport":Image is not None,
+                    "stickers": [metadata(row) for row in rows]}
     match = ASSET_ROUTE.fullmatch(path)
     if match:
         field = "png" if match[2] else FIELDS
@@ -442,6 +466,8 @@ def requested_profile(body, role):
 def post(path, body):
     if not isinstance(body, dict):
         raise StickerError(400, "请求需要包含贴纸资料。")
+    if path in (PREFIX + "/motions/generate", PREFIX + "/motions/import"):
+        return sticker_motion.post(body, generate=path.endswith("/generate"))
     if path == PREFIX + "/generate":
         if "theme" in body or "role" in body:
             role = body.get("role")

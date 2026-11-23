@@ -13,11 +13,12 @@ import sqlite3
 from urllib.parse import urlsplit, urlunsplit
 import webbrowser
 import sticker_service
+import sticker_motion
 
 
 SITE = Path(__file__).resolve().parents[1] / "play"
 SITE_ID = hashlib.sha256(os.path.normcase(str(SITE)).encode() +
-                         Path(__file__).read_bytes() + Path(sticker_service.__file__).read_bytes() +
+                         Path(__file__).read_bytes() + Path(sticker_service.__file__).read_bytes() + Path(sticker_motion.__file__).read_bytes() +
                          bytes([sticker_service.available()])).hexdigest()[:16]
 HOST = "127.0.0.1"
 
@@ -164,7 +165,7 @@ def main():
     args = parser.parse_args()
     handler = partial(GameHandler, directory=str(SITE))
     for port in range(args.port, args.port + 10):
-        url = f"http://{HOST}:{port}/?workshop=1"
+        url = f"http://{HOST}:{port}/?story=1"
         if is_our_server(port):
             if args.open:
                 webbrowser.open(url)

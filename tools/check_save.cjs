@@ -9,7 +9,9 @@ async function run() {
   });
   try {
     const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
-    await page.goto(process.argv[2] || "http://127.0.0.1:8765/");
+    const puzzle = new URL(process.argv[2] || "http://127.0.0.1:8765/");
+    puzzle.search = new URLSearchParams({box:box.id});
+    await page.goto(puzzle.href);
     await page.waitForFunction(() => document.querySelector("#total-count").textContent === "14");
     const board = await page.locator("#canvas").boundingBox();
     const fit = Math.min(board.width / 864, board.height / 900);

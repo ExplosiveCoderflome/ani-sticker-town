@@ -1,0 +1,53 @@
+{
+  "theme": "海边的水彩画室",
+  "stickers": [
+    {
+      "id": "gen-b20b2d11fc60151b5aacb1286f9b369b",
+      "role": "stall",
+      "name": "海边水彩画摊",
+      "width": 519,
+      "height": 530,
+      "size": [
+        205.0,
+        209.34
+      ],
+      "file": "stall.png"
+    },
+    {
+      "id": "gen-4d0ea10db919daae12baf96f4c359122",
+      "role": "table",
+      "name": "橡木写生桌",
+      "width": 370,
+      "height": 365,
+      "size": [
+        72.99,
+        72.0
+      ],
+      "file": "table.png"
+    },
+    {
+      "id": "gen-89898206a370c8e3aec8c98bdb82cd5b",
+      "role": "chair",
+      "name": "珊瑚色画凳",
+      "width": 291,
+      "height": 370,
+      "size": [
+        36.18,
+        46.0
+      ],
+      "file": "chair.png"
+    },
+    {
+      "id": "gen-69f2b38d22ad439e6ef7f889b2d385f1",
+      "role": "customer",
+      "name": "黄帽画师",
+      "width": 176,
+      "height": 370,
+      "size": [
+        41.86,
+        88.0
+      ],
+      "file": "customer.png"
+    }
+  ]
+}

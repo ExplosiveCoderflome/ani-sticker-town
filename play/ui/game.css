@@ -11,6 +11,7 @@ button,dialog{touch-action:manipulation}
 svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .symbols{position:absolute;width:0;height:0;overflow:hidden}
 .mast{border-bottom:1px solid var(--line)}
+#story-nav{border:0;background:transparent;padding:0}
 .mast-inner,.desk{width:min(100%,1460px);margin:0 auto;padding-inline:clamp(24px,4.2vw,72px)}
 .mast-inner{height:69px;display:flex;align-items:center;justify-content:space-between}
 .brand,.mast-actions,.plain,.share,.scene-heading,.tray-heading,.tray-title,.tool,.zoom,.edit-actions,.board-tools,.save-status,.tray-nav,.tray-nav>div,.reference span,.action{display:flex;align-items:center}

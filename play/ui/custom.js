@@ -2,11 +2,15 @@
   "use strict";
   const idPattern = /^gen-[0-9a-f]{32}$/;
   const registered = new Map();
+  const motionLoads = new Map();
+  const motionActions = ["walk","receive","use","carry"];
+  const actionNames = {walk:"走向摊位",receive:"接过物品",use:"坐下使用",carry:"带物离开"};
   const inks = { "松绿": "#304a36", "砖红": "#994630", "栗棕": "#573823" };
   const roles = [["place","小屋"],["furniture","家具"],["resident","居民"]];
   const marketRoles = [["stall","摊位"],["table","摊桌"],["chair","餐椅"],["customer","食客"]];
   const knownRoles = new Set([...roles, ...marketRoles].map(([role]) => role));
   const samples = [
+    {slug:"watercolor-studio",theme:"海边的水彩画室",profile:"studio",caption:"取画具，坐下写生，再抱着画本回家",motion:true},
     {slug:"seaside-market",theme:"海风夜市",profile:"market",caption:"烤鱿鱼摊、折叠桌、矮凳和游客"},
     {slug:"bookshop",theme:"雨天的街角书屋",profile:"books",caption:"雨棚书屋、阅览桌、木椅和读者"},
     {slug:"night-market",theme:"一个热闹的夜市",profile:"market",caption:"馄饨摊、方桌、小凳和食客"}
@@ -15,12 +19,15 @@
   const shelfKey = "town.workshop.kits.v1";
   const roleIDs = marketRoles.map(([id]) => id);
   let profiles = [
+    {id:"studio",terms:["画室","水彩","绘画","画廊","art studio","painting"],labels:{stall:"画室",table:"画桌",chair:"画凳",customer:"画师"}},
     {id:"books",terms:["书","阅读","book","librar"],labels:{stall:"书屋",table:"阅览桌",chair:"阅读椅",customer:"读者"}},
     {id:"market",terms:["夜市","night market"],labels:Object.fromEntries(marketRoles)},
     {id:"general",terms:[],labels:{stall:"主体场所",table:"桌子",chair:"座椅",customer:"来客"}}
   ];
   let mayImport = false;
   let preparedSheet;
+  let preparedMotion, motionEpoch = 0, readingMotion = false;
+  let mayImportMotion = false, canGenerateMotion = false;
   let inputEpoch = 0;
   const editions = new Map();
   let dialog;
@@ -37,7 +44,7 @@
     const res = await fetch(url, options);
     if (!res.headers.get("Content-Type")?.startsWith("application/json")) throw Error("请用「开始试玩」打开带有贴纸工坊的本机版本。");
     const data = await res.json();
-    if (!res.ok) throw Error(data.error || "这张贴纸暂时无法读取。");
+    if (!res.ok) { const error=Error(data.error || "这张贴纸暂时无法读取。"); error.status=res.status; throw error; }
     return data;
   }
 
@@ -71,12 +78,36 @@
     return row;
   }
 
-  function ensure(ids) {
-    return Promise.all([...new Set(typeof ids === "string" ? [ids] : ids)].map(id => {
+  async function bindMotions(actor) {
+    let library;
+    try { library=await json("/api/stickers/"+actor+"/motions"); }
+    catch (error) { if (error.status===404) return; throw error; }
+    if (!Array.isArray(library?.motions)) throw Error("角色动作清单没有读完整。");
+    for (const meta of library.motions.filter(m=>m?.ready===true)) {
+      const expected="/api/stickers/"+actor+"/motions/"+meta.target+"/atlas.png";
+      if (meta.actor!==actor || !idPattern.test(meta.target) || meta.image!==expected ||
+          !Array.isArray(meta.targets) || !meta.targets.includes(meta.target) ||
+          !meta.targets.length || !meta.targets.every(t=>idPattern.test(t))) throw Error("角色动作的场所资料不完整。");
+      const res=await fetch(expected,{mode:"same-origin",redirect:"error",cache:"no-cache"});
+      if (!res.ok || res.headers.get("Content-Type")?.split(";")[0]!=="image/png") throw Error("角色动作原图没有取到，请重试。");
+      const blob=await res.blob();
+      if (!blob.size || blob.size>5*1024*1024) throw Error("角色动作图过大，未能载入。");
+      window.townGame("registerMotion",JSON.stringify({id:actor,targets:meta.targets,data:await dataURI(blob)}));
+      if (!window.townUI.hasMotion?.(actor,meta.target)) throw Error("角色动作没有进入画布，请重新打开这一盒。");
+    }
+  }
+
+  async function ensure(ids) {
+    const rows=await Promise.all([...new Set(typeof ids === "string" ? [ids] : ids)].map(id => {
       if (!idPattern.test(id)) throw Error("无法识别这张定制贴纸。");
       if (!registered.has(id)) registered.set(id,register(id).catch(error => { registered.delete(id); throw error; }));
       return registered.get(id);
     }));
+    await Promise.all(rows.filter(r=>r.role==="customer").map(({id})=>{
+      if (!motionLoads.has(id)) motionLoads.set(id,bindMotions(id).catch(error=>{motionLoads.delete(id);throw error;}));
+      return motionLoads.get(id);
+    }));
+    return rows;
   }
 
   function select(id) {
@@ -104,7 +135,12 @@
     el("paint-prompt").disabled = busy;
     el("sheet-copy").disabled = busy || !prompt;
     el("sheet-file").disabled = busy || !prompt || !mayImport;
-    el("sheet-submit").disabled = busy || !prompt || !mayImport || !preparedSheet;
+    el("motion-file").disabled = busy || !prompt || !mayImportMotion;
+    el("motion-clear").disabled = busy;
+    el("motion-plan").disabled = busy || !canGenerateMotion;
+    const hasMotionFile=!!el("motion-file").files?.length;
+    el("sheet-submit").disabled = busy || readingMotion || !prompt || !mayImport || !preparedSheet || (hasMotionFile && !preparedMotion);
+    el("motion-clear").hidden = !hasMotionFile;
     el("studio-status").setAttribute("aria-busy", String(busy));
   }
 
@@ -117,16 +153,20 @@
     el("paint-prompt").placeholder = kind === "one" ? "例如，带小铜铃的薄荷绿冰淇淋车" : "例如，海边的旧唱片店";
     el("paint-recipe").textContent = kind === "market" ? roleIDs.map(r => profile.labels[r]).join("  ·  ") : kind === "theme" ? "小屋  ·  家具  ·  居民" : "";
     el("sheet-tools").hidden = kind !== "market";
+    const full = canGenerateMotion && el("motion-plan").checked;
+    el("motion-choice").hidden = kind !== "market" || !canGenerate;
+    el("motion-import").hidden = kind !== "market" || !mayImportMotion;
+    el("paint-redraw").textContent = full ? "重绘整盒与动作" : "重绘 4 张贴纸";
     el("paint-create").hidden = !sample && !canGenerate;
     el("paint-role-options").hidden = !canGenerate;
     el("studio-connect").hidden = canGenerate;
     const info = el("paint-info");
     if (sample) {
       el("paint-create").textContent = "打开这盒现成贴纸";
-      info.textContent = canGenerate ? "打开样盒免费。另画一版会使用 Recraft 额度，最多绘图、去背景各 4 次。" : "盒里的四张现成贴纸可直接试玩。你也可以导入自己画的另一版。";
+      info.textContent = canGenerate ? "打开样盒免费。重绘会使用 Recraft 额度，" + (full ? "四件贴纸与四组动作各绘制、去背一次。" : "四件贴纸各绘制、去背一次。") : "可直接打开样盒试玩，也可以导入自己绘制的贴纸。";
     } else if (kind === "market") {
-      el("paint-create").textContent = "用 Recraft 绘制 4 张";
-      info.textContent = canGenerate ? "按张使用 Recraft 额度，最多绘图、去背景各 4 次。相同主题可接着上次进度绘制。" : "可把绘图单交给你常用的画图工具，再将四张贴纸一起带回来。";
+      el("paint-create").textContent = full ? "生成整盒与 4 组动作" : "生成 4 张贴纸";
+      info.textContent = canGenerate ? (full ? "四件贴纸和四组角色动作各绘制、去背一次，使用 Recraft 额度。中断后可继续。" : "四件贴纸各绘制、去背一次，使用 Recraft 额度。") : "把绘图单交给常用的 AI 绘图工具，再导入 PNG。";
     } else {
       el("paint-create").textContent = kind === "theme" ? "分开生成 3 张贴纸" : "生成 1 张透明贴纸";
       info.textContent = canGenerate
@@ -143,7 +183,7 @@
     } catch { return []; }
   }
 
-  async function enterMarket(rows, theme, profile) {
+  async function enterMarket(rows, theme, profile, requireMotion=false) {
     if (!Array.isArray(rows) || rows.length !== 4) throw Error("这盒的四张贴纸还没齐。");
     const ordered = marketRoles.map(([role]) => {
       const row = rows.find(item => item?.role === role);
@@ -153,12 +193,13 @@
     if (new Set(ids).size !== 4) throw Error("主题盒需要四张独立的贴纸。");
     if (typeof window.townUI?.openMarket !== "function") throw Error("画布还在准备，请稍后再试。");
     await ensure(ids);
+    if (requireMotion && !window.townUI.hasMotion?.(ids[3],ids[0])) throw Error("这盒的角色动作还未齐全，可以接着完成。");
     profile ||= ordered[0].profile || profileFor(theme).id;
     const opened = await window.townUI.openMarket(ordered, theme, profile);
     if (opened === false) throw Error("暂时无法打开这盒贴纸，可以再试一次。");
     try {
       const others = recentKits().filter(kit => kit.ids.some((id,i) => id !== ids[i]));
-      localStorage.setItem(shelfKey,JSON.stringify([{theme,ids,profile},...others]));
+      localStorage.setItem(shelfKey,JSON.stringify([{theme,ids,profile,motion:!!window.townUI.hasMotion?.(ids[3],ids[0])},...others]));
     } catch {}
     if (dialog?.open) dialog.close();
     return ordered;
@@ -166,7 +207,7 @@
 
   async function openSample(sample) {
     const pack = await json("/api/stickers/" + sample.slug);
-    return enterMarket(pack.stickers, pack.theme || sample.theme, pack.profile || sample.profile);
+    return enterMarket(pack.stickers, pack.theme || sample.theme, pack.profile || sample.profile,sample.motion===true);
   }
 
   function redrawEdition(theme) {
@@ -205,12 +246,37 @@
       }
     }
     if (kind === "market") {
-      await enterMarket(rows, theme, rows[0].profile);
+      const full=canGenerateMotion && el("motion-plan").checked;
+      if (full) {
+        const [stall,table,chair,customer]=rows;
+        const request={theme,actor:customer.id,target:stall.id,furniture:[table.id,chair.id]};
+        let completed=[];
+        try {
+          const previous=await json("/api/stickers/"+customer.id+"/motions");
+          completed=previous.motions?.find(m=>m.target===stall.id)?.actions || [];
+          for (const action of motionActions) {
+            if (completed.includes(action)) continue;
+            el("studio-status").textContent="四件贴纸已收好。正在画「"+actionName(action,theme)+"」，已完成 "+completed.length+"/4 组动作。";
+            const result=await json("/api/stickers/motions/generate",{...request,action});
+            completed=result.actions;
+            if (!Array.isArray(completed) || !completed.includes(action)) throw Error("本组动作尚未保存。");
+          }
+          motionLoads.delete(customer.id);
+        } catch (err) {
+          throw Error("四件贴纸已保存，角色动作已完成 "+completed.length+"/4 组。"+err.message+" 保留这个主题，再点生成即可继续。");
+        }
+      }
+      await enterMarket(rows, theme, rows[0].profile,full);
       edition?.finish();
     } else if (dialog.open) {
       select(rows[0].id);
       window.townUI?.notice?.("三张贴纸齐了。先为小屋选个位置吧。");
     }
+  }
+
+  function actionName(action,theme) {
+    if (action==="use") return ({books:"坐下翻书",market:"坐下用餐",studio:"坐下写生"})[profileFor(theme).id] || actionNames.use;
+    return actionNames[action];
   }
 
   function drawingBrief() {
@@ -219,7 +285,10 @@
     return [
       "请为主题「" + theme + "」画一张四格透明 PNG 贴纸原图，用于一款等距视角的手绘造景游戏。",
       "正方形画布，均分成 2×2 四个象限。左上：" + labels.stall + "，一处完整且空着的场所；右上：" + labels.table + "，一件独立家具；左下：" + labels.chair + "，一把空座椅；右下：" + labels.customer + "，一名独立的全身角色。",
-      "每件居中，四边留出至少 8% 的透明余量；同一视角、光源和配色。请隐藏地面、格线、文字、白底和棋盘格，导出带真实透明通道的 PNG。"
+      "每件居中，四边留出至少 8% 的透明余量。统一视角、光源和配色，使用真实透明背景。不要画地面、文字、格线或棋盘格。",
+      "",
+      "为同一位"+labels.customer+"另画一张 4 列 × 4 行的透明 PNG 动作表，共 16 帧。角色全身朝左，同一套衣服、道具和镜头。各帧脚底线一致，头部大小相同，每格留出透明边距。",
+      "从上到下四行分别绘制四步连续步态、向"+labels.stall+"伸手接取道具、"+actionName("use",theme)+"、带着道具走开。每行从左到右画四个不同动作阶段。坐姿弯膝，不画椅子。"
     ].join("\n");
   }
 
@@ -286,6 +355,7 @@
       piece.append(img,name); preview.append(piece);
     }
     el("sheet-submit").hidden = !preparedSheet;
+    el("sheet-submit").textContent=preparedMotion ? "把四张贴纸和角色动作放进场景" : "把四张贴纸放进场景";
   }
 
   async function readSheet(file) {
@@ -303,6 +373,77 @@
     } finally { refresh(); }
   }
 
+  async function makeMotionSheet(files) {
+    if (files.length>2) throw Error("请选择一张 4×4 动作表，或两张 4×2 动作表。");
+    const perSheet=4/files.length, tile=224;
+    const output=document.createElement("canvas");
+    output.width=output.height=tile*4;
+    const ctx=output.getContext("2d",{willReadFrequently:true});
+    ctx.imageSmoothingQuality="high";
+    for (const [index,file] of files.entries()) {
+      const bytes=new Uint8Array(await file.slice(0,24).arrayBuffer());
+      if (file.size>12*1024*1024 || bytes.length<24 || ![137,80,78,71,13,10,26,10].every((n,i)=>bytes[i]===n)) throw Error("动作表应为 12 MB 以内的透明 PNG。");
+      const header=new DataView(bytes.buffer);
+      const w=header.getUint32(16),h=header.getUint32(20);
+      if (w<128 || h<32*perSheet || Math.max(w,h)>4096) throw Error("动作表每格至少需要 32 像素，原图每边最多 4096 像素。");
+      const img=new Image(),url=URL.createObjectURL(file);
+      try {
+        img.src=url;await img.decode();
+        for (let y=0;y<perSheet;y++) for (let x=0;x<4;x++) {
+          const sw=w/4,sh=h/perSheet,scale=Math.min(tile/sw,tile/sh);
+          const dx=x*tile,dy=(index*perSheet+y)*tile;
+          ctx.drawImage(img,x*sw,y*sh,sw,sh,dx+(tile-sw*scale)/2,dy+tile-sh*scale,sw*scale,sh*scale);
+          const pixels=ctx.getImageData(dx,dy,tile,tile).data;
+          let painted=0,clear=0;
+          for(let i=3;i<pixels.length;i+=4) {
+            if (pixels[i]>32) painted++; else if(pixels[i]<16) clear++;
+          }
+          // Check the drawn rectangle itself so letterboxing cannot disguise a solid background.
+          const area=sw*sh*scale*scale;
+          if (painted<35 || clear-(tile*tile-area)<area*.025) throw Error("动作表第 "+(index*perSheet+y+1)+" 行第 "+(x+1)+" 格需要完整角色和透明背景。");
+        }
+      } finally { URL.revokeObjectURL(url); }
+    }
+    return output.toDataURL("image/png");
+  }
+
+  function previewMotion() {
+    const list=el("motion-preview");
+    list.replaceChildren();
+    list.style.removeProperty("--motion-art");
+    el("motion-stepping").hidden=!preparedMotion;
+    if (!preparedMotion) return;
+    list.style.setProperty("--motion-art",'url("'+preparedMotion+'")');
+    list.style.setProperty("--preview-frame","0%");
+    el("motion-step").dataset.frame="0";
+    const paused=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    list.classList.toggle("paused",paused);
+    el("motion-pause").textContent=paused?"播放预览":"暂停预览";
+    motionActions.forEach((action,i)=>{
+      const figure=document.createElement("figure"),art=document.createElement("div"),label=document.createElement("figcaption");
+      art.className="motion-frame";
+      art.style.backgroundPositionY=(i*100/3)+"%";
+      label.textContent=actionName(action,el("paint-prompt").value.trim());
+      figure.append(art,label);list.append(figure);
+    });
+  }
+
+  async function readMotion(files) {
+    const epoch=++motionEpoch;
+    preparedMotion=undefined;readingMotion=files.length>0;previewMotion();previewSheet();refresh();
+    if (!files.length) return;
+    el("studio-status").textContent="正在检查 16 帧角色动作…";
+    try {
+      const sorted=[...files].sort((a,b)=>a.name.localeCompare(b.name,"zh",{numeric:true}));
+      const sheet=await makeMotionSheet(sorted);
+      if (epoch!==motionEpoch) return;
+      preparedMotion=sheet;previewMotion();previewSheet();
+      el("studio-status").textContent="4 组动作已带入。确认动作顺序后，可以与四张贴纸一同入盒。";
+    } catch(error) {
+      if (epoch===motionEpoch) el("studio-status").textContent=error.message || "无法读取这张动作表。";
+    } finally { if(epoch===motionEpoch) {readingMotion=false;refresh();} }
+  }
+
   async function importSheet() {
     const theme = el("paint-prompt").value.trim(), profile = profileFor(theme).id;
     const rows = [];
@@ -310,8 +451,16 @@
       el("studio-status").textContent = "正在收好第 " + (i+1) + " / 4 张贴纸…";
       rows.push(await json("/api/stickers",{kind:"interactive",theme,profile,role,data:preparedSheet[i]}));
     }
-    await enterMarket(rows,theme,profile);
+    if (preparedMotion) {
+      el("studio-status").textContent="四件贴纸已保存。正在检查并绑定 16 帧角色动作…";
+      const [stall,table,chair,actor]=rows;
+      const result=await json("/api/stickers/motions/import",{theme,actor:actor.id,target:stall.id,furniture:[table.id,chair.id],data:preparedMotion});
+      if (!result.ready) throw Error("动作还没有保存完整，请重试。");
+      motionLoads.delete(actor.id);
+    }
+    await enterMarket(rows,theme,profile,!!preparedMotion);
     preparedSheet = undefined; el("sheet-file").value = ""; previewSheet();
+    el("motion-file").value="";await readMotion([]);
   }
 
   function draw() {
@@ -349,8 +498,10 @@
     for (const kit of recentKits()) {
       const b = document.createElement("button"), img = new Image(), span = document.createElement("span");
       img.src = "/api/stickers/" + kit.ids[0] + "/image.png"; img.alt = ""; img.loading = "lazy";
-      span.textContent = kit.theme; b.append(img,span);
-      b.onclick = () => task("正在翻开这一盒…",async () => enterMarket(await ensure(kit.ids),kit.theme,kit.profile));
+      span.textContent = kit.theme;
+      if (kit.motion) { const small=document.createElement("small");small.textContent="含角色动作";span.append(small); }
+      b.append(img,span);
+      b.onclick = () => task("正在翻开这一盒…",async () => enterMarket(await ensure(kit.ids),kit.theme,kit.profile,kit.motion===true));
       list.append(b);
     }
     el("recent-heading").hidden = !list.childElementCount;
@@ -404,8 +555,10 @@
       '<fieldset id="street-colors"><legend>墨色</legend></fieldset><button class="action atelier-main" id="street-create">做成贴纸</button></section>',
       '<section id="paint-panel"><div class="atelier-section-title"><h3>打开样盒</h3><span>现成四件套 · 免费试玩</span></div><div id="atelier-samples"></div>',
       '<div class="atelier-compose"><div class="atelier-kind"><label id="paint-label" for="paint-prompt">想做一盒什么主题？</label><span id="paint-role-options" hidden><label class="sr-only" for="paint-kind">制作规格</label><select id="paint-kind"><option value="market">互动四件套</option><option value="theme">场景三件套</option><option value="one">单件贴纸</option></select></span></div>',
-      '<input id="paint-prompt" type="text" maxlength="240" value="海风夜市" autocomplete="off"><div id="paint-recipe"></div><p id="paint-info"></p><div class="paint-actions"><button id="paint-create" class="action">打开这盒现成贴纸</button><button id="paint-redraw" class="secondary" hidden>用 Recraft 重绘 4 张</button></div>',
-      '<div id="sheet-tools"><div class="sheet-buttons"><button id="sheet-copy" class="secondary"><svg aria-hidden="true"><use href="#i-book"/></svg>复制四格绘图单</button><label class="sheet-pick" for="sheet-file"><svg aria-hidden="true"><use href="#i-plus"/></svg>导入四格 PNG<input id="sheet-file" type="file" accept="image/png,.png"></label></div><textarea id="sheet-brief" rows="5" readonly hidden aria-label="四格绘图单"></textarea><div id="sheet-preview" aria-label="四张裁好的贴纸预览"></div><button class="action atelier-main" id="sheet-submit" hidden>把四张贴纸放进场景</button></div><details id="studio-connect"><summary>连接 Recraft，在工坊直接画</summary><p>在运行小镇的电脑安装 Pillow，把 RECRAFT_API_TOKEN 设为游戏服务的环境变量，再重启本机服务。连接后可按张绘图，消耗该 Recraft 账户的额度。</p></details></div></section>',
+      '<input id="paint-prompt" type="text" maxlength="240" value="海边的水彩画室" autocomplete="off"><div id="paint-recipe"></div><label id="motion-choice" hidden><input id="motion-plan" type="checkbox" checked>同时绘制角色动作 <small>4 组，共 16 帧</small></label><p id="paint-info"></p><div class="paint-actions"><button id="paint-create" class="action">打开这盒现成贴纸</button><button id="paint-redraw" class="secondary" hidden>重绘整盒与动作</button></div>',
+      '<div id="sheet-tools"><div class="import-heading"><h3>导入自己的图</h3><button id="sheet-copy" class="sheet-text">复制绘图单</button></div><textarea id="sheet-brief" rows="5" readonly hidden aria-label="贴纸与动作绘图单"></textarea><div class="sheet-buttons"><label class="sheet-pick" for="sheet-file">选择四格贴纸 PNG<input id="sheet-file" type="file" accept="image/png,.png"></label><small>2 × 2 格，一格一件</small></div><div id="sheet-preview" aria-label="四张裁好的贴纸预览"></div>',
+      '<div id="motion-import"><div class="sheet-buttons"><label class="sheet-pick" for="motion-file">选择角色动作 PNG<input id="motion-file" type="file" multiple accept="image/png,.png" aria-describedby="motion-guide"></label><small>选填 · 16 帧</small><button type="button" class="sheet-text" id="motion-clear" hidden>移除动作</button></div><p id="motion-guide">一张 4 列 × 4 行的透明图，每行依次画走路、接取、坐下使用、带物离开；也可分成两张 4×2，文件名以 01、02 开头。</p><div id="motion-preview" aria-label="四组角色动画预览"></div><div id="motion-stepping" hidden><button id="motion-pause" class="sheet-text">暂停预览</button><button id="motion-step" class="sheet-text">下一帧</button></div></div>',
+      '<button class="action atelier-main" id="sheet-submit" hidden>把四张贴纸放进场景</button></div><details id="studio-connect"><summary>连接 Recraft，在工坊直接画</summary><p>将 RECRAFT_API_TOKEN 设为游戏服务的环境变量后重启。可在工坊一并绘制四件贴纸和角色动作，使用已配置账户的额度。</p></details></div></section>',
       '<section id="library-panel" hidden><h3 id="recent-heading" hidden>再打开一盒</h3><div id="atelier-recent"></div><h3>我的贴纸</h3><p id="atelier-empty">做一张路牌，或把自己的图带回来，贴纸就会收在这里。</p><div id="atelier-collection"></div><div class="atelier-samples"><h3>街角常用贴纸</h3><div id="sample-pieces"></div></div></section>',
       '<p id="studio-status" role="status" aria-live="polite"></p>'
     ].join("");
@@ -416,7 +569,7 @@
     });
     for (const sample of samples) {
       const b = document.createElement("button"), scene = document.createElement("span");
-      b.id = sample.slug === "bookshop" ? "sample-bookshop" : sample.slug === "night-market" ? "paint-sample" : "sample-seaside";
+      b.id = ({"bookshop":"sample-bookshop","night-market":"paint-sample","watercolor-studio":"sample-watercolor","seaside-market":"sample-seaside"})[sample.slug];
       b.className = "sample-box " + sample.slug; scene.className = "sample-art";
       for (const role of ["stall","table","chair","customer"]) {
         const img = new Image(); img.src = "media/" + sample.slug + "/" + role + ".png"; img.alt = ""; img.className = "sample-" + role; scene.append(img);
@@ -440,9 +593,22 @@
     try { const themeDraft = sessionStorage.getItem("town.workshop.prompt"); if (themeDraft !== null) el("paint-prompt").value = themeDraft; } catch {}
     el("paint-prompt").oninput = () => {
       try { sessionStorage.setItem("town.workshop.prompt",el("paint-prompt").value); } catch {}
-      el("sheet-brief").hidden = true; el("studio-status").textContent = ""; paintOptions(); if (preparedSheet) previewSheet();
+      el("sheet-brief").hidden = true; el("studio-status").textContent = ""; paintOptions(); if (preparedSheet) previewSheet(); if(preparedMotion) previewMotion();
     };
     el("paint-kind").onchange = paintOptions;
+    el("motion-plan").onchange=paintOptions;
+    el("motion-file").onchange=()=>readMotion(el("motion-file").files);
+    el("motion-clear").onclick=()=>{el("motion-file").value="";readMotion([]);el("studio-status").textContent="已移除动作表。";};
+    el("motion-pause").onclick=()=>{
+      const paused=el("motion-preview").classList.toggle("paused");
+      el("motion-pause").textContent=paused?"播放预览":"暂停预览";
+    };
+    el("motion-step").onclick=()=>{
+      const i=(Number(el("motion-step").dataset.frame)+1)%4;
+      el("motion-step").dataset.frame=String(i);
+      el("motion-preview").classList.add("paused");el("motion-pause").textContent="播放预览";
+      el("motion-preview").style.setProperty("--preview-frame",(i*100/3)+"%");
+    };
     el("sheet-copy").onclick = copyBrief;
     el("sheet-file").onchange = () => readSheet(el("sheet-file").files[0]);
     el("sheet-submit").onclick = () => task("正在收好四张贴纸…",importSheet);
@@ -477,6 +643,7 @@
       if (Array.isArray(presets?.profiles) && presets.profiles.some(p => p.id === "general") &&
           presets.profiles.every(p => Array.isArray(p.terms) && roleIDs.every(role => typeof p.labels?.[role] === "string"))) profiles = presets.profiles;
       serviceReady = true; canGenerate = data.ai === true; mayImport = data.interactiveImport === true;
+      mayImportMotion=data.motionImport===true;canGenerateMotion=data.motionAI===true;
       collection(Array.isArray(data.stickers) ? data.stickers : []);
       showRecent();
       paintOptions();
@@ -487,5 +654,6 @@
     }
     refresh();
   }
-  window.stickerStudio = {open,ensure,openNightMarket:() => openSample(samples[2]),openBookshop:() => openSample(samples[1]),openSeaside:() => openSample(samples[0])};
+  const openNamed=slug=>openSample(samples.find(sample=>sample.slug===slug));
+  window.stickerStudio = {open,ensure,openNightMarket:() => openNamed("night-market"),openBookshop:() => openNamed("bookshop"),openSeaside:() => openNamed("seaside-market"),openWatercolor:() => openNamed("watercolor-studio")};
 })();

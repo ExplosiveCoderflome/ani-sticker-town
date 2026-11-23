@@ -46,6 +46,45 @@ const routes = [customer, {...stall, anchor: [100, 100]}, {...table, anchor: [10
   {...otherDesk, anchor: [135, 100]}, {...chair, anchor: [151, 100]}];
 assert.equal(plan({slots: routes})[0].tableId, otherDesk.id);
 
+// The seaside tourist can eat at a free-standing stool. Idle visitors block only their own spot.
+const striped = {...customer, asset:'gen-19cd29ce4e7972065fb2288a19cd16c2', anchor:[120,190]};
+const squid = {...stall, asset:'gen-b0be9653bc46f3b0c159ae0ea21dbddf', anchor:[180,170]};
+const near = {...chair, anchor:[251,220]};
+const spare = {...seatB, anchor:[330,250]};
+const occupied = {...middle, anchor:near.anchor};
+const seaside = {slots:[striped,squid,near,spare]};
+assert.deepEqual(plan(seaside,striped.id)[0].actors.map(a => a.asset),[striped.asset,squid.asset,near.asset]);
+assert.equal(plan(seaside,striped.id)[0].chairId,near.id);
+assert.equal(plan({slots:[...seaside.slots,occupied]},striped.id)[0].chairId,spare.id);
+assert.equal(plan({slots:[striped,squid,near,occupied]},striped.id)[0].chairId,undefined);
+assert.equal(plan({slots:[striped,squid,{...near,anchor:[396,170]}]},striped.id)[0].chairId,undefined);
+assert.equal(plan({slots:[striped,squid,{...near,anchor:[395,170]}]},striped.id)[0].chairId,near.id);
+assert.equal(plan({slots:[striped,{...squid,asset:stall.asset},near]},striped.id)[0].chairId,undefined);
+assert.equal(plan({slots:[{...striped,asset:customer.asset},squid,near]},striped.id)[0].chairId,undefined);
+assert.equal(plan({slots:[striped,squid,near,{...table,anchor:[240,210]}]},striped.id)[0].tableId,table.id);
+
+const reader = {...customer,profile:'books',anchor:[120,190]};
+const kiosk = {...stall,profile:'books',anchor:[180,170]};
+const readingDesk = {...table,anchor:[245,212]};
+assert.equal(plan({slots:[reader,kiosk,near]},reader.id)[0].chairId,undefined);
+assert.equal(plan({slots:[reader,kiosk,readingDesk,near,occupied]},reader.id)[0].chairId,undefined);
+assert.equal(plan({slots:[reader,kiosk,readingDesk,near]},reader.id)[0].chairId,near.id);
+
+const motionBindings = {[reader.asset]:[kiosk.asset,readingDesk.asset,near.asset]};
+const studioVisit = slots => plan({slots,motionBindings},reader.id)[0];
+const unrelated = {...kiosk,id:'unrelated',asset:'other-stall',anchor:reader.anchor};
+assert.equal(studioVisit([reader,unrelated,kiosk,readingDesk,near]).stallId,kiosk.id);
+assert.equal(studioVisit([reader,unrelated]),undefined);
+assert.equal(studioVisit([reader,readingDesk]).targetRole,'table');
+assert.equal(studioVisit([reader,near]).targetRole,'chair');
+assert.equal(studioVisit([reader,near,occupied]),undefined);
+assert.equal(studioVisit([reader,kiosk,near]).chairId,near.id);
+assert.equal(studioVisit([reader,kiosk,{...near,asset:'wrong-seat'}]).chairId,undefined);
+assert.equal(studioVisit([reader,{...readingDesk,anchor:[775,750]}]),undefined);
+const secondSeat = {...near,asset:'another-kit-seat'};
+assert.equal(plan({slots:[reader,kiosk,secondSeat],motionBindings:{[reader.asset]:[kiosk.asset,secondSeat.asset]},
+  motionSets:{[reader.asset]:{[kiosk.asset]:[kiosk.asset,near.asset]}}},reader.id)[0].chairId,undefined);
+
 assert.deepEqual(plan(null), []);
 assert.deepEqual(plan({slots: [customer, {...stall, id: customer.id}]}), []);
 assert.deepEqual(plan({slots: [customer, {...stall, anchor: [-1, 240]}, {...stall, anchor: [100, NaN]}]}), []);

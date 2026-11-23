@@ -8,6 +8,7 @@
   <link rel="icon" href="media/stickers/bakery.webp" type="image/webp">
   <link rel="stylesheet" href="ui/game.css">
   <link rel="stylesheet" href="ui/custom.css">
+  <link rel="stylesheet" href="ui/story.css">
   <script defer src="ui/gift.js"></script>
   <script defer src="ui/parcel.js"></script>
   <script defer src="ui/custom.js"></script>
@@ -15,6 +16,7 @@
   <script defer src="ui/garden.js"></script>
   <script defer src="ui/night-rules.js"></script>
   <script defer src="ui/night-market.js"></script>
+  <script defer src="ui/story.js"></script>
   <script defer src="ui/game.js"></script>
 </head>
 <body>
@@ -41,9 +43,10 @@
     <symbol id="i-postcard" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M14 8v8m2-3h3m-3 3h2M5 15l2.5-3 2 2 1.5-1.5"/></symbol>
     <symbol id="i-magic" viewBox="0 0 24 24"><path d="m4 20 11-11 2 2L6 22zm10-16 1-3 1 3 3 1-3 1-1 3-1-3-3-1zm5 10 1-2 1 2 2 1-2 1-1 2-1-2-2-1Z"/></symbol>
   </svg>
+  <section id="story-home-screen" aria-label="街角来信" hidden></section>
   <header class="mast">
     <div class="mast-inner">
-      <div class="brand"><span class="brand-mark"><svg aria-hidden="true"><use href="#i-book"/></svg></span><span>小镇贴纸簿</span></div>
+      <button type="button" class="brand" id="story-nav" aria-label="打开街角来信首页" title="街角来信首页"><span class="brand-mark"><svg aria-hidden="true"><use href="#i-book"/></svg></span><span>街角来信</span></button>
       <nav class="mode-switch" aria-label="游戏模式">
         <button id="market-enter" aria-pressed="false" disabled><svg aria-hidden="true"><use href="#i-lantern"/></svg>夜市</button>
         <button id="mode-edit" aria-pressed="false" disabled><svg aria-hidden="true"><use href="#i-stack"/></svg>造景</button>
@@ -61,6 +64,7 @@
       <div class="scene-heading"><h1 id="level-title">周末小镇</h1><span id="box-number">第 1 盒 / 共 2 盒</span></div>
       <p id="instruction">从贴纸盘选一张，贴到场景中对应的位置。</p>
     </div>
+    <section id="story-task" aria-label="当前居民委托" hidden></section>
     <section class="workspace" aria-label="贴纸游戏">
       <div class="play-column">
         <div class="board" id="board">
@@ -80,9 +84,9 @@
           <div class="market-tally"><svg aria-hidden="true"><use href="#i-lantern"/></svg><span id="market-tally-label">本轮成交</span><strong id="market-sales">0</strong><span id="market-unit">单</span></div>
           <p id="market-status" role="status" aria-live="polite"></p>
           <button id="market-reopen" type="button">再逛一轮</button>
-          <div id="market-discoveries" aria-label="这套贴纸的两种互动" hidden>
+          <div id="market-discoveries" aria-label="这套贴纸的互动发现" hidden>
             <span>已发现 <b id="market-found">0 / 2</b></span>
-            <span id="market-step-away"></span><span id="market-step-stay"></span>
+            <span id="market-step-away"></span><span id="market-step-stay"></span><span id="market-step-furniture" hidden>使用家具</span>
           </div>
         </div>
         <div class="board-tools">

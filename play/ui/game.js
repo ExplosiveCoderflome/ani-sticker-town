@@ -12,6 +12,7 @@
   const gardenOrder = ["black-cat","bench","dog","musician","florist","flower-cart","tree","cafe-table","cafe-chair","bakery","bookshop","lamp","fountain","child","paving"];
   const initialURL = new URL(location.href);
   const requested = initialURL.searchParams.get("box");
+  const initialChapter = initialURL.searchParams.get("story");
   let state = null;
   let page = 0;
   let renderKey = "";
@@ -27,6 +28,7 @@
   let giftReference = "";
   let giftRequest = 0;
   let marketLoading = false;
+  let keepsake;
   let postcardPreview = "";
 
   function isEditing() { return state?.mode === "edit"; }
@@ -39,6 +41,16 @@
 
   function action(name, payload = "") {
     if (state && typeof window.townGame === "function") window.townGame(name, payload);
+  }
+  function collectPostbox() {
+    if (!keepsake) keepsake = (async () => {
+      const reply = await fetch("/api/stickers/story-keepsake",{mode:"same-origin",redirect:"error"});
+      if (!reply.ok) throw Error("蓝邮筒暂未取到，请再打开一次纪念册。");
+      const {id} = await reply.json();
+      await window.stickerStudio.ensure([id]);
+      return id;
+    })().catch(error => { keepsake = null; throw error; });
+    return keepsake;
   }
 
   function showNotice(message) {
@@ -59,8 +71,8 @@
   function visibleSlots() {
     if (isEditing()) return [...(state.catalog || [])].sort((a, b) => {
       const priority = (asset) => {
-        const kitIndex = state.marketMode ? state.marketKit.indexOf(asset) : -1;
-        return kitIndex >= 0 ? kitIndex - 8 : asset.startsWith("gen-") ? -1 : gardenOrder.indexOf(asset);
+        const kitIndex = state.marketMode ? (state.storyAssets?.length ? state.storyAssets : state.marketKit).indexOf(asset) : -1;
+        return kitIndex >= 0 ? kitIndex - 12 : asset.startsWith("gen-") ? -1 : gardenOrder.indexOf(asset);
       };
       return priority(a.asset) - priority(b.asset);
     });
@@ -114,7 +126,7 @@
     const data = typeof json === "string" ? JSON.parse(json) : json;
     const last = state;
     const levelChanged = !last || last.levelId !== data.levelId || last.mode !== data.mode || last.title !== data.title ||
-      last.marketMode !== data.marketMode || last.marketKit?.join(".") !== data.marketKit?.join(".");
+      last.marketMode !== data.marketMode || last.storyChapter !== data.storyChapter || last.marketKit?.join(".") !== data.marketKit?.join(".");
     state = data;
     if (levelChanged || (last && data.placed.length < last.placed.length)) {
       clearTimeout(toastTimer);
@@ -126,7 +138,7 @@
       const heading = data.marketMode ? (data.marketTheme === "一个热闹的夜市" ? "灯火夜市" : data.marketTheme) :
         isEditing() ? (second ? "广场午后" : "我的街角") : data.title;
       get("level-title").textContent = heading;
-      get("box-number").textContent = data.marketMode ? "互动主题盒" : isEditing() ? "自由造景" : isGift() ? "朋友的贴纸盒" : "第 " + (second ? 2 : 1) + " 盒 / 共 2 盒";
+      get("box-number").textContent = data.storyChapter ? "街角来信" : data.marketMode ? "互动主题盒" : isEditing() ? "自由造景" : isGift() ? "朋友的贴纸盒" : "第 " + (second ? 2 : 1) + " 盒 / 共 2 盒";
       document.title = heading + " · 小镇贴纸簿";
       get("next-level").textContent = isGift() ? "做一盒回礼" : second ? "回到第一盒" : "打开下一盒";
       document.body.dataset.mode = data.mode || "puzzle";
@@ -144,6 +156,8 @@
           url.searchParams.set("market","1");
           for (const param of ["edit","garden","box"]) url.searchParams.delete(param);
         } else url.searchParams.delete("market");
+        url.searchParams.delete("story");
+        if (data.storyChapter) url.search = new URLSearchParams({story:data.storyChapter});
         history.replaceState(null, "", url);
       }
       keyboardPoint = {x: .5, y: .5};
@@ -153,7 +167,7 @@
     get("mode-puzzle").disabled = false;
     get("mode-edit").disabled = false;
     get("market-enter").disabled = marketLoading;
-    get("market-enter").setAttribute("aria-pressed", String(!!data.marketMode));
+    get("market-enter").setAttribute("aria-pressed", String(!!data.marketMode && !data.storyChapter));
     get("mode-puzzle").setAttribute("aria-pressed", String(!edit));
     get("mode-edit").setAttribute("aria-pressed", String(edit && !data.marketMode));
     get("cat-invite").disabled = false;
@@ -206,6 +220,7 @@
     drawTray(levelChanged || (last && last.selected !== data.selected));
     window.TownGarden.sync(data);
     window.TownNightMarket.sync(data);
+    window.TownStory.sync(data);
     if (!edit && last && !levelChanged && placed > last.placed.length) {
       const piece = data.slots.find((s) => s.id === data.placed[placed - 1]);
       showNotice(data.complete ? "这一盒的贴纸全部就位！" : (piece?.name || "贴纸") + "已贴好");
@@ -220,16 +235,48 @@
       settleStartup("");
       clearTimeout(stallTimer);
       get("load-layer").hidden = true;
+      if (window.TownStory.finished()) collectPostbox().catch(error => showNotice(error.message));
       if (/^#gift(?:=|$)/.test(initialURL.hash)) openGift(initialURL.hash);
+      else if (initialChapter) {
+        if (initialChapter !== "1" && window.TownStory.canOpen(initialChapter)) {
+          window.townUI.openStory(initialChapter).catch(error => {
+            window.TownStory.home();
+            showError("来信暂未打开",error);
+          });
+        }
+      }
       else if (initialURL.searchParams.has("market")) {
         const target = initialURL.searchParams.get("market");
-        enterMarket(target === "seaside" || target === "books" ? target : target === "sample");
+        enterMarket(["seaside","books","watercolor"].includes(target) ? target : target === "sample");
       }
-      else if (initialURL.searchParams.get("garden") === "1" || (!requested && !initialURL.searchParams.has("edit"))) action("mode", "garden");
+      else if (!window.TownStory.isHome() && (initialURL.searchParams.get("garden") === "1" || (!requested && !initialURL.searchParams.has("edit")))) action("mode", "garden");
       else if (initialURL.searchParams.get("edit") === "1") action("mode", "edit");
       else if (requested && !levels.includes(requested)) showNotice("没有找到这盒贴纸，已打开周末小镇。");
     },
     sync,
+    hasMotion(actor,target) { return state?.motionBindings?.[actor]?.includes(target) === true; },
+    async openStory(chapter) {
+      if (!window.TownStory.canOpen(chapter)) throw Error("先把上一封回信收进纪念册，再拆这封信。");
+      await this.whenReady();
+      await window.TownNightMarket.openStory(chapter);
+      const url = new URL(location.href);
+      url.search = new URLSearchParams({story:chapter}); url.hash = "";
+      history.replaceState(null,"",url);
+    },
+    async freePlay() {
+      await this.whenReady();
+      window.TownNightMarket.cancelLoad();
+      action("mode","garden");
+      const url = new URL(location.href);
+      url.search = "?garden=1"; url.hash = "";
+      history.replaceState(null,"",url);
+    },
+    async placeKeepsake() {
+      if (!window.TownStory.finished()) throw Error("收齐三封回信就能领到这只邮筒。");
+      const id = await collectPostbox();
+      await this.freePlay();
+      action("select","kit:" + id);
+    },
     actorTap(id) { if (!window.TownNightMarket.tap(id)) window.TownGarden.tap(id); },
     openMarket(rows, theme, profile) { return window.TownNightMarket.fromRows(rows,theme,profile); },
     marketSale(customer,stall) { window.TownNightMarket.sale(customer,stall); },
@@ -261,7 +308,7 @@
   get("zoom-out").onclick = () => action("zoomOut");
   get("sound").onclick = () => action("mute");
   async function enterMarket(sampleOnly = false) {
-    if (marketLoading || state?.marketMode) return;
+    if (marketLoading || (state?.marketMode && !state.storyChapter)) return;
     marketLoading = true;
     const button = get("market-enter"); button.disabled = true; button.setAttribute("aria-busy","true");
     showNotice("正在打开互动贴纸盒…");
@@ -272,6 +319,7 @@
     finally { marketLoading = false; button.disabled = false; button.removeAttribute("aria-busy"); }
   }
   get("market-enter").onclick = () => enterMarket();
+  get("story-nav").onclick = () => { window.TownNightMarket.cancelLoad(); window.TownStory.home(); };
   get("mode-puzzle").onclick = () => { window.TownNightMarket.cancelLoad(); if (isEditing() || isGift()) action("mode", "puzzle"); };
   get("mode-edit").onclick = () => { window.TownNightMarket.cancelLoad(); if (!isEditing() || state.marketMode) action("mode", "garden"); };
   get("cat-invite").onclick = () => { action("mode", "garden"); action("select", "kit:black-cat"); };
@@ -289,6 +337,8 @@
   get("workshop-enter").onclick = () => openWorkshop("paint-panel");
   get("custom-button").onclick = () => openWorkshop("street-panel");
   if (initialURL.searchParams.get("workshop") === "1" && !initialURL.hash) openWorkshop("paint-panel");
+  const explicitMode = ["market","garden","edit","box","workshop"].some(key => initialURL.searchParams.has(key));
+  if (!explicitMode && !initialURL.hash && (!initialChapter || initialChapter === "1" || !window.TownStory.canOpen(initialChapter))) window.TownStory.home();
 
   function dialogButton(text, callback, primary = false) {
     const button = document.createElement("button");
@@ -337,7 +387,8 @@
   });
   get("help-button").onclick = () => {
     const steps = document.createElement("ol");
-    const tips = state?.marketMode ? ["把角色放在店铺或工作台附近，看他走过去。贴纸盘里同一件可以多次取用。","把桌椅配在场景里，角色互动后会找地方坐下。把座位挪远，看看结尾有什么变化。","轻点场上的角色，可以再看一次互动。也可以再开一轮，请附近的角色依次出发。"] :
+    const seaside = window.NightMarketRules.isSkewerPair(state?.marketKit?.[3],state?.marketKit?.[0]);
+    const tips = state?.marketMode ? ["把角色放在店铺或工作台附近，看他走过去。贴纸盘里同一件可以多次取用。",seaside ? "给烤鱿鱼摊旁留一张空凳，游客就能坐下吃串。拖远凳子，看她接串后往哪里走。" : "把桌椅配在场景里，角色互动后会找地方坐下。把座位挪远，看看结尾有什么变化。","轻点场上的角色，可以再看一次互动。也可以再开一轮，请附近的角色依次出发。"] :
       isEditing() ? ["选一张贴纸，再点街景把它放下来。每件都能挪走，也可以放好几件一样的。", "把角色和物件摆近一点。遇见过的小事会记进「街角手记」；轻点凑在一起的角色还能再看一次。", "喜欢现在的摆法，就存一张明信片，或把这片街景封成礼物让朋友重拼。"] :
       ["从贴纸盘挑一张。带角标的轮廓就是它的位置。", "把贴纸拖进去，或先选贴纸再点对应位置。", "用双指或加减按钮放大；放大后可以拖动画布。"];
     for (const text of tips) {
